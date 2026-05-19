@@ -6,6 +6,94 @@ This skill gives your AI assistant complete knowledge of the FieldTwin integrati
 
 ---
 
+## Before You Start — How FieldTwin Integrations Work
+
+Read this section first. It will save you a lot of confusion.
+
+### What is a FieldTwin integration?
+
+A FieldTwin integration is a small web page that appears as a panel inside FieldTwin. FieldTwin loads it inside an **iFrame** — think of it as a browser tab embedded directly in the platform. Your integration can read data from FieldTwin, react to user actions, and send commands back (select assets, zoom the camera, show notifications, etc.).
+
+### There are two kinds of integrations
+
+**Type 1 — Frontend only**
+
+Your entire integration is a single HTML file with JavaScript. It talks directly to the FieldTwin API from the browser.
+
+```
+FieldTwin  →  loads your HTML/JS page  →  page calls FieldTwin API
+```
+
+Good for: dashboards, asset lists, selection panels, search tools, simple forms.
+No server required. Can be hosted for free on GitHub Pages.
+
+---
+
+**Type 2 — Frontend + Backend**
+
+Your HTML/JS page is a thin interface. The real logic runs on a server you control — Python, Node.js, or any language. The page calls your server, your server does the work, and sends results back.
+
+```
+FieldTwin  →  loads your HTML/JS page  →  page calls YOUR server  →  server calls FieldTwin API or runs calculations
+```
+
+Good for: complex calculations, machine learning, data from external databases, heavy processing (e.g. Python packages for pipeline routing calculations).
+Requires a running server (locally during development, deployed for production).
+
+---
+
+### The URL problem — and how to solve it
+
+FieldTwin needs a **public HTTPS URL** to load your integration. This means `http://localhost` does not work out of the box, because FieldTwin runs over HTTPS and browsers block HTTPS pages from loading HTTP content by default.
+
+There are two practical solutions:
+
+---
+
+#### Solution A — GitHub Pages (recommended for Type 1 integrations)
+
+Push your HTML file to GitHub and enable GitHub Pages. Your integration gets a permanent HTTPS URL instantly — no server, no configuration, works from any network including restricted corporate environments.
+
+```
+Your HTML file on GitHub  →  GitHub Pages serves it at https://your-org.github.io/your-repo/...
+```
+
+This is the recommended path for **simple integrations and vibe coding**. The Hello World in this repository works this way.
+
+---
+
+#### Solution B — localhost with Chrome override (recommended for active development)
+
+For development — especially when you have a backend server running locally — you can tell Chrome to allow your specific FieldTwin instance to load content from `http://localhost`. This is a one-time setting per FieldTwin URL.
+
+**How to enable it:**
+
+1. Open FieldTwin in Chrome.
+2. Click the **icon to the left of the URL bar** (the one that shows lock or info).
+3. Click **Site settings**.
+4. Find **Insecure content**.
+5. Change it from **Block** to **Allow**.
+6. Reload the page.
+
+That's it. Chrome will now allow your FieldTwin session to load iFrames from `http://localhost`. This setting is saved for that FieldTwin URL.
+
+> This works for both Type 1 and Type 2 integrations. Your backend (Python, Node.js, etc.) can also run on localhost and be called by your iFrame — no tunneling tools required.
+
+---
+
+#### Which solution should I use?
+
+| Situation | Solution |
+|---|---|
+| I just want to test the Hello World | GitHub Pages — use the link in this repo |
+| I am building a simple HTML/JS integration | GitHub Pages — push and share |
+| I am developing locally and need live reload | localhost + Chrome override |
+| I have a Python/Node backend running locally | localhost + Chrome override |
+| I am in a restricted corporate network (e.g. Petrobras) | GitHub Pages for the iFrame; your backend needs to be accessible from your machine |
+| I am deploying to production | GitHub Pages (frontend) + your cloud provider (backend) |
+
+---
+
 ## What You Can Ask Your AI After Setting This Up
 
 Once the skill is active, your AI assistant can:
