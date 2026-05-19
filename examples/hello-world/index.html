@@ -195,6 +195,65 @@
 
     .diag-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 
+    .setup-guide {
+      background: #111827;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .setup-guide-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .setup-option {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e2433;
+    }
+
+    .setup-option:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+    .setup-option-label {
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+
+    .setup-option p { color: #94a3b8; margin-bottom: 6px; }
+
+    .chrome-steps {
+      background: #1a1f2e;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-top: 6px;
+    }
+
+    .chrome-steps-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-bottom: 6px;
+    }
+
+    .chrome-steps ol {
+      padding-left: 16px;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+
+    .chrome-steps li { margin-bottom: 3px; }
+    .chrome-steps li strong { color: #e2e8f0; }
+
     footer {
       margin-top: 20px;
       padding-top: 12px;
@@ -311,6 +370,35 @@
       Connection Diagnostics
     </div>
 
+    <!-- Setup guide -->
+    <div class="setup-guide">
+      <div class="setup-guide-title">How to serve your integration</div>
+
+      <div class="setup-option">
+        <div class="setup-option-label">Option A — GitHub Pages (simplest, no server needed)</div>
+        <p>Push your HTML file to GitHub and enable GitHub Pages. You get a permanent HTTPS URL that works from anywhere — including restricted corporate networks.</p>
+        <p style="color:#64748b;font-size:11px;">Best for: simple HTML/JS integrations, sharing with clients, vibe coding.</p>
+      </div>
+
+      <div class="setup-option">
+        <div class="setup-option-label">Option B — localhost (for active development)</div>
+        <p>Run a local server (<code style="background:#0f1117;padding:1px 4px;border-radius:3px;color:#93c5fd;">npx serve .</code> or <code style="background:#0f1117;padding:1px 4px;border-radius:3px;color:#93c5fd;">python -m http.server 3000</code>) and register <code style="background:#0f1117;padding:1px 4px;border-radius:3px;color:#93c5fd;">http://localhost:PORT</code> as your integration URL in FieldTwin.</p>
+        <p style="color:#64748b;font-size:11px;">Best for: live reload during development, integrations with a Python/Node backend on localhost.</p>
+        <div class="chrome-steps">
+          <div class="chrome-steps-title">Required one-time Chrome setup — do this before adding the integration to FieldTwin</div>
+          <ol>
+            <li>Open FieldTwin in Chrome.</li>
+            <li>Click the <strong>icon to the left of the URL bar</strong> (lock or info icon).</li>
+            <li>Click <strong>Site settings</strong>.</li>
+            <li>Find <strong>Insecure content</strong>.</li>
+            <li>Change it from <strong>Block</strong> to <strong>Allow</strong>.</li>
+            <li>Reload FieldTwin.</li>
+          </ol>
+          <p style="color:#64748b;font-size:11px;margin-top:6px;">This allows FieldTwin (HTTPS) to load your local integration (HTTP). Without this step, the browser blocks the iFrame silently.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="check-list" id="check-list">
 
       <div class="check-item" id="chk-protocol">
@@ -321,7 +409,8 @@
             FieldTwin only sends <code>postMessage</code> to pages served over HTTP or HTTPS.
             If you opened this file directly as <code>file://</code>, it will never connect.
             <br><br>
-            <strong>Fix:</strong> Run <code>npx serve examples/hello-world</code> and open <code>http://localhost:3000</code> in FieldTwin.
+            <strong>Fix A (GitHub Pages):</strong> Push this file to GitHub, enable GitHub Pages, and register the <code>https://your-org.github.io/...</code> URL in FieldTwin.<br><br>
+            <strong>Fix B (localhost):</strong> Run <code>npx serve .</code> or <code>python -m http.server 3000</code>, then follow the Chrome setup in the guide above before registering <code>http://localhost:PORT</code> in FieldTwin.
           </div>
         </div>
       </div>
@@ -334,7 +423,8 @@
             FieldTwin only communicates with integrations embedded as iFrames.
             Opening this page in a standalone browser tab will not trigger <code>loaded</code>.
             <br><br>
-            <strong>Fix:</strong> Add the URL as an integration in FieldTwin → Settings → Integrations → Add Integration.
+            <strong>Fix:</strong> Add the URL in FieldTwin → Settings → Integrations → Add Integration.<br><br>
+            <strong>If you are using localhost:</strong> Make sure you completed the Chrome insecure content setup (see guide above) <em>before</em> adding the integration. If Chrome is blocking the iFrame silently, the integration panel will appear blank with no error.
           </div>
         </div>
       </div>
@@ -666,13 +756,30 @@
 
       // 1. Protocol
       const proto = location.protocol;
-      if (proto === 'http:' || proto === 'https:') {
-        setCheck('protocol', 'pass', `Page is being served over <code>${proto}</code> — correct.`);
+      const host  = location.hostname;
+      if (proto === 'https:') {
+        setCheck('protocol', 'pass', `Page is served over <code>https://</code> — correct.`);
+        passes++;
+      } else if (proto === 'http:' && (host === 'localhost' || host === '127.0.0.1')) {
+        setCheck('protocol', 'warn',
+          `Page is served over <code>http://localhost</code>.<br><br>` +
+          `This can work, but Chrome must be configured to allow insecure content for your FieldTwin URL. ` +
+          `If the integration panel is blank or the <code>loaded</code> event never arrives, complete the Chrome setup:<br><br>` +
+          `<strong>1.</strong> Open FieldTwin in Chrome.<br>` +
+          `<strong>2.</strong> Click the icon left of the URL bar → <strong>Site settings</strong>.<br>` +
+          `<strong>3.</strong> Find <strong>Insecure content</strong> → set to <strong>Allow</strong>.<br>` +
+          `<strong>4.</strong> Reload FieldTwin and reopen the integration panel.`
+        );
+        passes++; // Not a hard fail — it can work with Chrome override
+      } else if (proto === 'http:') {
+        setCheck('protocol', 'pass', `Page is served over <code>http://</code> — correct. Remember Chrome must allow insecure content for your FieldTwin URL.`);
         passes++;
       } else {
         setCheck('protocol', 'fail',
           `Page protocol is <code>${proto}</code> — this will not work.<br><br>` +
-          `<strong>Fix:</strong> Run <code>npx serve examples/hello-world</code> and open <code>http://localhost:3000</code> in FieldTwin as an integration.`
+          `<strong>Fix A (GitHub Pages):</strong> Push your file to GitHub and enable GitHub Pages.<br><br>` +
+          `<strong>Fix B (localhost):</strong> Run <code>npx serve .</code> or <code>python -m http.server 3000</code>, ` +
+          `then follow the Chrome insecure content setup in the guide at the top of this tab.`
         );
         fails++;
       }

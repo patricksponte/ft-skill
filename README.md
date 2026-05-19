@@ -123,7 +123,7 @@ Once the skill is active, your AI assistant can:
 | **CLI Tools** | [Claude Code](#claude-code) · [Aider](#aider) |
 | **Web — Anthropic** | [Claude.ai Projects](#claudeai-projects) |
 | **Web — OpenAI** | [ChatGPT Custom GPT](#chatgpt-custom-gpt) · [ChatGPT Projects](#chatgpt-projects) |
-| **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio) |
+| **Web — Google** | [Gemini CLI](#gemini-cli) · [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio) |
 | **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer) |
 | **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
 
@@ -369,6 +369,34 @@ ChatGPT Projects (available on Plus/Pro) let you define custom instructions scop
 3. Paste the contents of `fieldtwin-instructions.md`.
 4. Upload `api-reference.json` as a project file (click the paperclip icon in the project sidebar).
 5. All chats in this project will have the skill active.
+
+---
+
+### Gemini CLI
+
+**Best file:** `platforms/gemini-cli.md` (copy to `GEMINI.md`)
+
+The [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`@google/gemini-cli`) is Google's official command-line AI assistant. It reads `GEMINI.md` from the current project directory automatically — the same pattern as Claude Code's `CLAUDE.md`.
+
+1. Install the Gemini CLI:
+   ```bash
+   npm install -g @google/gemini-cli
+   ```
+2. Copy the skill file to your integration project:
+   ```bash
+   curl -o GEMINI.md \
+     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/gemini-cli.md
+   ```
+3. Optionally copy the full reference and endpoint list:
+   ```bash
+   curl -o fieldtwin-instructions.md \
+     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+   curl -o api-reference.json \
+     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-reference.json
+   ```
+4. Run `gemini` in your project folder — the skill is active automatically.
+
+> `GEMINI.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the skill automatically.
 
 ---
 
@@ -701,6 +729,7 @@ fieldtwin-ai-skill/
 ├── platforms/
 │   ├── claude-code-skill.md          ← Claude Code /fieldtwin skill
 │   ├── copilot-instructions.md       ← GitHub Copilot, Cline, JetBrains AI
+│   ├── gemini-cli.md                 ← Gemini CLI (copy to GEMINI.md)
 │   └── .cursorrules                  ← Cursor / Windsurf
 │
 └── examples/
