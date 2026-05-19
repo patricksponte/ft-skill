@@ -126,6 +126,7 @@ Once the skill is active, your AI assistant can:
 | **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio)                                                                                                                                                        |
 | **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer)                                                                                                                                            |
 | **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
+| **Direct API access** | [MCP Server (Advanced)](#mcp-server-advanced) |
 
 ### Step 2 — Run the Hello World
 
@@ -674,6 +675,118 @@ Restart VS Code after saving. The skill-enabled model will appear in the Continu
 
 ---
 
+## MCP Server (Advanced)
+
+The MCP (Model Context Protocol) server gives Claude Code **direct access to your FieldTwin data** — no code generation required. Instead of asking Claude to write API calls for you to run, Claude can execute them directly and show you the results in the conversation.
+
+### Skill vs MCP Server — which one do I need?
+
+| | Skill | MCP Server |
+|---|---|---|
+| **What it does** | Teaches Claude how to write FieldTwin integration code | Gives Claude tools to call the FieldTwin API directly |
+| **Who runs the code** | You (Claude writes it, you run it) | Claude (executes API calls autonomously) |
+| **Output** | Working code you can put in your integration | Live data from your FieldTwin account |
+| **Best for** | Building new integrations | Querying data, bulk changes, exploring your project |
+| **Requires** | Any AI assistant | Claude Code + Node.js + FieldTwin API Token |
+| **Works offline** | Yes (just instructions) | No (makes real API calls) |
+
+**Use the Skill when you want code.** Use the MCP server when you want Claude to query or act on your live FieldTwin data directly.
+
+Both can be active at the same time — they complement each other.
+
+---
+
+### Requirements
+
+- [Node.js](https://nodejs.org) 18 or later
+- Claude Code (CLI or desktop app)
+- A FieldTwin **API Token** (from FieldTwin Settings → API Tokens)
+
+> This is **not** the same as the JWT token from the `loaded` event. The API Token is account-level and lives in FieldTwin settings. Never expose it in your integration's HTML/JS code.
+
+---
+
+### Setup
+
+**Step 1 — Install dependencies:**
+
+```bash
+cd mcp-server
+npm install
+```
+
+**Step 2 — Add the server to Claude Code:**
+
+Create or edit `.claude/settings.json` in your project directory. For a global setup (available in all projects), use `~/.claude/settings.json` instead.
+
+```json
+{
+  "mcpServers": {
+    "fieldtwin": {
+      "command": "node",
+      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "env": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+      }
+    }
+  }
+}
+```
+
+Replace `/absolute/path/to/fieldtwin-ai-skill` with the actual path on your machine.
+
+`FIELDTWIN_SUBPROJECT_ID` is optional. If set, all tools will use that subproject by default and you won't need to specify it in every prompt.
+
+**Step 3 — Restart Claude Code.** The `fieldtwin` MCP server starts automatically when Claude Code loads.
+
+**Step 4 — Verify:**
+
+Ask Claude Code:
+> "List all my FieldTwin projects"
+
+Claude will call the MCP server and show you live results from your account.
+
+---
+
+### Available tools (24)
+
+| Category | Tools |
+|---|---|
+| **Projects** | `list_projects`, `list_subprojects` |
+| **Staged Assets** | `get_staged_assets`, `get_staged_asset`, `create_staged_asset`, `update_staged_asset`, `delete_staged_asset` |
+| **Wells** | `get_wells`, `get_well`, `create_well`, `update_well`, `delete_well` |
+| **Connections** | `get_connections`, `get_connection`, `create_connection`, `update_connection`, `delete_connection` |
+| **Other (read-only)** | `get_shapes`, `get_overlays`, `get_frames`, `get_annotations` |
+| **Metadata** | `get_metadata_definitions`, `get_metadata`, `add_metadata` |
+
+---
+
+### Example prompts
+
+```
+"List all staged assets in subproject abc123"
+"How many connections are in my project?"
+"Find all assets with status Planned and change them to Installed"
+"Create a new well at x=665000, y=400000 named Production Well 1"
+"Show me the custom metadata fields defined in this project"
+"Delete all staged assets tagged type::temporary"
+"What assets are closest to coordinates 665000, 400000?"
+```
+
+---
+
+### How the MCP server works internally
+
+The server runs as a local process via **stdio transport** — Claude Code spawns it automatically. There is no web server, no open port, and no network exposure beyond the calls it makes to the FieldTwin API. All credentials stay in your `.claude/settings.json` file, which you should keep out of version control.
+
+```
+Claude Code  ──stdin/stdout──  mcp-server/index.js  ──HTTPS──  FieldTwin API
+```
+
+---
+
 ## Hello World
 
 The Hello World is a single self-contained HTML file. When opened inside FieldTwin as an integration, it:
@@ -731,6 +844,11 @@ fieldtwin-ai-skill/
 │   ├── copilot-instructions.md       ← GitHub Copilot, Cline, JetBrains AI
 │   ├── gemini-cli.md                 ← Gemini CLI (copy to GEMINI.md)
 │   └── .cursorrules                  ← Cursor / Windsurf
+│
+├── mcp-server/
+│   ├── index.js                      ← MCP server — 24 tools for direct FieldTwin API access
+│   ├── package.json                  ← Node.js dependencies (@modelcontextprotocol/sdk, zod)
+│   └── .env.example                  ← Environment variable template
 │
 └── examples/
     └── hello-world/
