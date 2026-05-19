@@ -117,14 +117,14 @@ Once the skill is active, your AI assistant can:
 
 ### Step 1 — Pick your platform and add the skill
 
-| Category | Platform |
-|---|---|
-| **IDE Extensions** | [Cursor](#cursor--windsurf) · [Windsurf](#cursor--windsurf) · [GitHub Copilot](#github-copilot) · [Cline](#cline-vs-code) · [Continue.dev](#continuedev) · [JetBrains AI](#jetbrains-ai-assistant) |
-| **CLI Tools** | [Claude Code](#claude-code) · [Aider](#aider) |
-| **Web — Anthropic** | [Claude.ai Projects](#claudeai-projects) |
-| **Web — OpenAI** | [ChatGPT Custom GPT](#chatgpt-custom-gpt) · [ChatGPT Projects](#chatgpt-projects) |
-| **Web — Google** | [Gemini CLI](#gemini-cli) · [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio) |
-| **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer) |
+| Category | Platform                                                                                                                                                                                                                   |
+|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **IDE Extensions** | [Cursor](#cursor--windsurf) · [Windsurf](#cursor--windsurf) · [GitHub Copilot](#github-copilot) · [Cline](#cline-vs-code) · [Continue.dev](#continuedev) · [JetBrains AI](#jetbrains-ai-assistant)                         |
+| **CLI Tools** | [Claude Code](#claude-code) · [Gemini CLI](#gemini-cli) · [Aider](#aider)                                                                                                                                                   |
+| **Web — Anthropic** | [Claude.ai Projects](#claudeai-projects)                                                                                                                                                                                   |
+| **Web — OpenAI** | [ChatGPT Custom GPT](#chatgpt-custom-gpt) · [ChatGPT Projects](#chatgpt-projects)                                                                                                                                          |
+| **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio)                                                                                                                                                        |
+| **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer)                                                                                                                                            |
 | **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
 
 ### Step 2 — Run the Hello World
