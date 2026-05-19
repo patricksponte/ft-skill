@@ -609,7 +609,6 @@ fieldtwin-ai-skill/
 ├── fieldtwin-instructions.md         ← Full skill reference — large context models
 ├── api-reference.json                ← All 120+ REST endpoints (v1.10), structured JSON
 ├── api-quick-reference.md            ← Compact reference — token-limited models
-├── copilot-instructions.md           ← GitHub Copilot (copy to .github/)
 │
 ├── platforms/
 │   ├── claude-code-skill.md          ← Claude Code /fieldtwin skill
