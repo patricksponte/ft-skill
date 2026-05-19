@@ -794,7 +794,7 @@ LM Studio 0.3.5+ supports MCP natively.
      - `FIELDTWIN_SUBPROJECT_ID` = (optional)
 4. Click **Save**. The server starts automatically when you open a chat.
 
-Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 24 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
+Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 98 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
 
 ---
 
@@ -883,16 +883,27 @@ The AI will call the MCP server and show you live results from your account.
 
 ---
 
-### Available tools (24)
+### Available tools (98)
 
 | Category | Tools |
 |---|---|
-| **Projects** | `list_projects`, `list_subprojects` |
-| **Staged Assets** | `get_staged_assets`, `get_staged_asset`, `create_staged_asset`, `update_staged_asset`, `delete_staged_asset` |
-| **Wells** | `get_wells`, `get_well`, `create_well`, `update_well`, `delete_well` |
-| **Connections** | `get_connections`, `get_connection`, `create_connection`, `update_connection`, `delete_connection` |
-| **Other (read-only)** | `get_shapes`, `get_overlays`, `get_frames`, `get_annotations` |
-| **Metadata** | `get_metadata_definitions`, `get_metadata`, `add_metadata` |
+| **Projects** | `list_projects`, `get_project`, `create_project`, `update_project` |
+| **SubProjects** | `list_subprojects`, `get_subproject`, `create_subproject`, `update_subproject`, `delete_subproject`, `get_subproject_hierarchy`, `get_subproject_is_ready`, `get_subproject_share_url`, `get_subproject_tags` |
+| **Staged Assets** | `get_staged_assets`, `get_staged_asset`, `create_staged_asset`, `create_staged_assets_batch`, `update_staged_asset`, `delete_staged_asset` |
+| **Wells** | `get_wells`, `get_well`, `create_well`, `create_wells_batch`, `update_well`, `delete_well` |
+| **Well Bores** | `create_well_bore`, `update_well_bore`, `delete_well_bore`, `get_well_bore_segments`, `update_well_bore_segment`, `delete_well_bore_segment` |
+| **Connections** | `get_connections`, `get_connection`, `create_connection`, `create_connections_batch`, `update_connection`, `delete_connection` |
+| **Connection Segments** | `get_connection_segments`, `create_connection_segment`, `update_connection_segment`, `delete_connection_segment` |
+| **Shapes** | `get_shapes`, `get_shape`, `create_shape`, `create_shapes_batch`, `update_shape`, `delete_shape` |
+| **Overlays** | `get_overlays`, `get_overlay`, `create_overlay`, `create_overlays_batch`, `update_overlay` _(no delete — not available in API)_ |
+| **Annotations** | `get_annotations`, `get_annotation`, `create_annotation`, `update_annotation`, `delete_annotation` |
+| **Layers** | `get_layers`, `get_layer`, `create_layer`, `update_layer`, `delete_layer` |
+| **Custom Costs** | `get_custom_costs`, `get_custom_cost`, `create_custom_cost`, `create_custom_costs_batch`, `update_custom_cost`, `delete_custom_cost` |
+| **Subproject Documents** | `get_subproject_documents`, `upload_subproject_document`, `delete_subproject_document` |
+| **Metadata** | `get_metadata_definitions`, `get_account_metadata_definitions`, `get_metadata`, `add_metadata`, `update_metadata`, `delete_metadata` |
+| **Type Lookups** | `get_assets`, `get_well_types`, `get_well_bore_types`, `get_annotation_types`, `get_shape_types`, `get_layer_types`, `get_connection_types`, `get_connection_type`, `get_connection_categories`, `get_connection_segment_types`, `get_well_bore_segment_types` |
+| **Tags** | `get_tags`, `get_tag`, `create_tag`, `update_tag`, `delete_tag` |
+| **Account** | `get_users`, `get_user`, `get_usage`, `get_account_logs`, `get_integrations` |
 
 ---
 
