@@ -126,7 +126,7 @@ Once the skill is active, your AI assistant can:
 | **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio)                                                                                                                                                        |
 | **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer)                                                                                                                                            |
 | **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
-| **Direct API access** | [MCP Server (Advanced)](#mcp-server-advanced) |
+| **Direct API access** | [MCP Server](#mcp-server-advanced) — works with Claude Code, Cursor, LM Studio, Gemini CLI, Cline, Continue.dev |
 
 ### Step 2 — Run the Hello World
 
@@ -677,20 +677,22 @@ Restart VS Code after saving. The skill-enabled model will appear in the Continu
 
 ## MCP Server (Advanced)
 
-The MCP (Model Context Protocol) server gives Claude Code **direct access to your FieldTwin data** — no code generation required. Instead of asking Claude to write API calls for you to run, Claude can execute them directly and show you the results in the conversation.
+The MCP (Model Context Protocol) server gives any compatible AI client **direct access to your FieldTwin data** — no code generation required. Instead of asking the AI to write API calls for you to run, it can execute them directly and show you live results in the conversation.
+
+MCP is an open protocol. The model (Claude, Gemini, GPT-4o, DeepSeek, Llama, etc.) only needs to support **tool calling** — which all modern LLMs do. What matters is whether your **client application** supports MCP.
 
 ### Skill vs MCP Server — which one do I need?
 
 | | Skill | MCP Server |
 |---|---|---|
-| **What it does** | Teaches Claude how to write FieldTwin integration code | Gives Claude tools to call the FieldTwin API directly |
-| **Who runs the code** | You (Claude writes it, you run it) | Claude (executes API calls autonomously) |
+| **What it does** | Teaches the AI how to write FieldTwin integration code | Gives the AI tools to call the FieldTwin API directly |
+| **Who runs the code** | You (AI writes it, you run it) | The AI (executes API calls autonomously) |
 | **Output** | Working code you can put in your integration | Live data from your FieldTwin account |
 | **Best for** | Building new integrations | Querying data, bulk changes, exploring your project |
-| **Requires** | Any AI assistant | Claude Code + Node.js + FieldTwin API Token |
+| **Requires** | Any AI assistant | A MCP-compatible client + Node.js + FieldTwin API Token |
 | **Works offline** | Yes (just instructions) | No (makes real API calls) |
 
-**Use the Skill when you want code.** Use the MCP server when you want Claude to query or act on your live FieldTwin data directly.
+**Use the Skill when you want code.** Use the MCP server when you want the AI to query or act on your live FieldTwin data directly.
 
 Both can be active at the same time — they complement each other.
 
@@ -699,23 +701,36 @@ Both can be active at the same time — they complement each other.
 ### Requirements
 
 - [Node.js](https://nodejs.org) 18 or later
-- Claude Code (CLI or desktop app)
+- A MCP-compatible client (see table below)
 - A FieldTwin **API Token** (from FieldTwin Settings → API Tokens)
 
-> This is **not** the same as the JWT token from the `loaded` event. The API Token is account-level and lives in FieldTwin settings. Never expose it in your integration's HTML/JS code.
+> The API Token is **not** the same as the JWT token from the `loaded` event. It is account-level and stays on your machine — never put it in your integration's HTML/JS code.
+
+### Compatible clients
+
+| Client | Models you can use | MCP support |
+|---|---|---|
+| **Claude Code** | Claude | Native |
+| **Cursor** | GPT-4o, Claude, Gemini, DeepSeek, any | Yes |
+| **Windsurf** | GPT-4o, Claude, Gemini, any | Yes |
+| **Cline** (VS Code) | Any model via API key | Yes |
+| **Continue.dev** | Ollama, LM Studio, any OpenAI-compat. | Yes |
+| **Gemini CLI** | Gemini | Yes |
+| **LM Studio** | Llama, Qwen, DeepSeek, Gemma, any local | Yes (v0.3.5+) |
+| **AnythingLLM** | Any local or cloud model | Yes |
 
 ---
 
-### Setup
-
-**Step 1 — Install dependencies:**
+**Step 0 — Install dependencies (all clients):**
 
 ```bash
 cd mcp-server
 npm install
 ```
 
-**Step 2 — Add the server to Claude Code:**
+---
+
+### Setup — Claude Code
 
 Create or edit `.claude/settings.json` in your project directory. For a global setup (available in all projects), use `~/.claude/settings.json` instead.
 
@@ -735,18 +750,136 @@ Create or edit `.claude/settings.json` in your project directory. For a global s
 }
 ```
 
-Replace `/absolute/path/to/fieldtwin-ai-skill` with the actual path on your machine.
+Replace `/absolute/path/to/fieldtwin-ai-skill` with the actual absolute path on your machine. Restart Claude Code after saving.
 
-`FIELDTWIN_SUBPROJECT_ID` is optional. If set, all tools will use that subproject by default and you won't need to specify it in every prompt.
+---
 
-**Step 3 — Restart Claude Code.** The `fieldtwin` MCP server starts automatically when Claude Code loads.
+### Setup — Cursor
 
-**Step 4 — Verify:**
+Cursor reads MCP servers from `~/.cursor/mcp.json` (global, all projects) or `.cursor/mcp.json` (per-project). You can also add them via **Cursor Settings → MCP → Add server**.
 
-Ask Claude Code:
+```json
+{
+  "mcpServers": {
+    "fieldtwin": {
+      "command": "node",
+      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "env": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+      }
+    }
+  }
+}
+```
+
+The JSON format is identical to Claude Code. Once configured, you can use any model in Cursor (GPT-4o, Claude, Gemini, DeepSeek, etc.) — all will have access to the FieldTwin tools.
+
+---
+
+### Setup — LM Studio
+
+LM Studio 0.3.5+ supports MCP natively.
+
+1. Open LM Studio → click the **Developer** tab (or the plug icon in the sidebar).
+2. Select **MCP Servers → Add server**.
+3. Fill in the fields:
+   - **Name:** `fieldtwin`
+   - **Command:** `node`
+   - **Args:** `/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js`
+   - **Environment variables:**
+     - `FIELDTWIN_BACKEND_URL` = `https://backend.fieldtwin.com`
+     - `FIELDTWIN_API_TOKEN` = your token
+     - `FIELDTWIN_SUBPROJECT_ID` = (optional)
+4. Click **Save**. The server starts automatically when you open a chat.
+
+Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 24 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
+
+---
+
+### Setup — Gemini CLI
+
+Gemini CLI reads MCP servers from `~/.gemini/settings.json` (global) or `.gemini/settings.json` in the project directory.
+
+```json
+{
+  "mcpServers": {
+    "fieldtwin": {
+      "command": "node",
+      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "env": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+      }
+    }
+  }
+}
+```
+
+Restart Gemini CLI after saving. Type `gemini` in your project folder and the `fieldtwin` tools will be available automatically.
+
+---
+
+### Setup — Cline (VS Code)
+
+1. Open VS Code → click the Cline icon in the sidebar.
+2. Click **MCP Servers → Configure MCP Servers**.
+3. This opens `cline_mcp_settings.json`. Add the `fieldtwin` entry:
+
+```json
+{
+  "mcpServers": {
+    "fieldtwin": {
+      "command": "node",
+      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "env": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+      }
+    }
+  }
+}
+```
+
+Save the file. Cline will connect to the server immediately (no restart needed). You can then use any model configured in Cline.
+
+---
+
+### Setup — Continue.dev
+
+Edit `~/.continue/config.json` and add an `mcpServers` block:
+
+```json
+{
+  "models": [...],
+  "mcpServers": [
+    {
+      "name": "fieldtwin",
+      "command": "node",
+      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "env": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+      }
+    }
+  ]
+}
+```
+
+Restart VS Code after saving. Continue.dev will expose the FieldTwin tools to whichever model you have active — including local models via Ollama or LM Studio.
+
+---
+
+### Verify (all clients)
+
+Ask your AI:
 > "List all my FieldTwin projects"
 
-Claude will call the MCP server and show you live results from your account.
+The AI will call the MCP server and show you live results from your account.
 
 ---
 
@@ -779,10 +912,10 @@ Claude will call the MCP server and show you live results from your account.
 
 ### How the MCP server works internally
 
-The server runs as a local process via **stdio transport** — Claude Code spawns it automatically. There is no web server, no open port, and no network exposure beyond the calls it makes to the FieldTwin API. All credentials stay in your `.claude/settings.json` file, which you should keep out of version control.
+The server runs as a local process via **stdio transport** — your MCP client spawns it automatically. There is no web server, no open port, and no network exposure beyond the calls it makes to the FieldTwin API. All credentials stay in your client's config file, which you should keep out of version control.
 
 ```
-Claude Code  ──stdin/stdout──  mcp-server/index.js  ──HTTPS──  FieldTwin API
+AI Client  ──stdin/stdout──  mcp-server/index.js  ──HTTPS──  FieldTwin API
 ```
 
 ---
