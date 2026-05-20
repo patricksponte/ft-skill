@@ -139,6 +139,35 @@ Ask your AI assistant:
 
 ---
 
+## Installer Scripts
+
+Instead of copying files manually, run the installer in your integration project directory. It downloads the right files from GitHub, shows you what will be installed, and asks for confirmation before writing anything.
+
+**Linux / macOS:**
+```bash
+curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.ps1" -OutFile install.ps1
+.\install.ps1
+```
+
+> **Note for Windows users:** If PowerShell blocks the script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and then retry.
+
+The installer covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Gemini CLI**
+
+For each tool it shows:
+- What the skill does in that tool
+- Which files will be created
+- A yes/no prompt before writing anything
+- A warning if a file already exists (with an overwrite prompt)
+
+Files are always downloaded from the latest version of this repository, so updates are available to everyone automatically.
+
+---
+
 ## Which File Should I Use?
 
 | File | Size | Best for |
