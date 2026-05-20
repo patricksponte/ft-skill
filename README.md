@@ -967,9 +967,16 @@ Option C — Any web server:
 Copy `index.html` to your server. The file is completely self-contained.
 
 **How to add it to FieldTwin:**
-1. In FieldTwin, go to **Settings → Integrations → Add Integration**
-2. Paste your Hello World URL
-3. Open the integration panel — you should see "Connected to FieldTwin!"
+1. Go to **Admin → Integrations → Create New Tab**
+2. Enter a name for your integration
+3. Add the URL (e.g. `http://localhost:5001` or your ngrok URL)
+4. Enable the following options:
+   - **Use Get Verb Instead of Post**
+   - **Do not pass arguments in URL for Get request**
+   - **Allow Access to Whole Project**
+5. Save and open the integration panel — you should see "Connected to FieldTwin!"
+
+![FieldTwin integration configuration](docs/images/fieldtwin-integration-config.png)
 
 ---
 
