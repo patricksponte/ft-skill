@@ -63,9 +63,9 @@ echo "  You will be asked before anything is written to disk."
 separator
 echo ""
 
-# ── [1/6] Claude Code ─────────────────────────────────────────────────────────
+# ── [1/7] Claude Code ─────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  [1/6] Claude Code${NC}"
+echo -e "${BOLD}  [1/7] Claude Code${NC}"
 echo ""
 echo "  Registers a /fieldtwin slash command in Claude Code and places"
 echo "  the full API reference where the command can read it."
@@ -91,9 +91,9 @@ else
 fi
 echo ""
 
-# ── [2/6] GitHub Copilot ──────────────────────────────────────────────────────
+# ── [2/7] GitHub Copilot ──────────────────────────────────────────────────────
 
-echo -e "${BOLD}  [2/6] GitHub Copilot${NC}"
+echo -e "${BOLD}  [2/7] GitHub Copilot${NC}"
 echo ""
 echo "  Adds .github/copilot-instructions.md so Copilot reads the FieldTwin"
 echo "  skill automatically for everyone working on this repository."
@@ -116,9 +116,9 @@ else
 fi
 echo ""
 
-# ── [3/6] Cursor / Windsurf ───────────────────────────────────────────────────
+# ── [3/7] Cursor / Windsurf ───────────────────────────────────────────────────
 
-echo -e "${BOLD}  [3/6] Cursor / Windsurf${NC}"
+echo -e "${BOLD}  [3/7] Cursor / Windsurf${NC}"
 echo ""
 echo "  Adds .cursorrules to the project root. Both Cursor and Windsurf"
 echo "  read this file automatically — no extra setup needed."
@@ -141,9 +141,9 @@ else
 fi
 echo ""
 
-# ── [4/6] Cline ───────────────────────────────────────────────────────────────
+# ── [4/7] Cline ───────────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  [4/6] Cline (VS Code)${NC}"
+echo -e "${BOLD}  [4/7] Cline (VS Code)${NC}"
 echo ""
 echo "  Adds .clinerules with the full FieldTwin skill. Cline injects it"
 echo "  as a system prompt for every conversation in this workspace."
@@ -166,9 +166,9 @@ else
 fi
 echo ""
 
-# ── [5/6] Aider ───────────────────────────────────────────────────────────────
+# ── [5/7] Aider ───────────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  [5/6] Aider${NC}"
+echo -e "${BOLD}  [5/7] Aider${NC}"
 echo ""
 echo "  Creates CONVENTIONS.md with the FieldTwin skill. Aider reads this"
 echo "  file automatically on startup in the current directory."
@@ -191,9 +191,9 @@ else
 fi
 echo ""
 
-# ── [6/6] Gemini CLI ──────────────────────────────────────────────────────────
+# ── [6/7] Gemini CLI ──────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  [6/6] Gemini CLI${NC}"
+echo -e "${BOLD}  [6/7] Gemini CLI${NC}"
 echo ""
 echo "  Creates GEMINI.md with the FieldTwin skill. The Gemini CLI reads"
 echo "  this file automatically when you run 'gemini' in this directory."
@@ -213,6 +213,39 @@ if ask "Set up for Gemini CLI?"; then
 else
   echo "  Skipped."
   skipped+=("Gemini CLI")
+fi
+echo ""
+
+# ── [7/7] OpenCode ────────────────────────────────────────────────────────────
+
+echo -e "${BOLD}  [7/7] OpenCode${NC}"
+echo ""
+echo "  Creates .opencode/agents/fieldtwin.md — a dedicated FieldTwin agent"
+echo "  available inside OpenCode for any of its 75+ supported AI providers."
+echo ""
+echo -e "  ${DIM}Files that will be created:${NC}"
+echo "    .opencode/agents/fieldtwin.md   ← /fieldtwin agent"
+echo "    .opencode.json                  ← project config (instructions + MCP)"
+echo ""
+if ask "Set up for OpenCode?"; then
+  ok=true
+  guard ".opencode/agents/fieldtwin.md" || ok=false
+  $ok && download "platforms/opencode.md" ".opencode/agents/fieldtwin.md" || ok=false
+  if $ok; then
+    echo ""
+    if ask "Also create .opencode.json with instructions + MCP config?"; then
+      if guard ".opencode.json"; then
+        download "platforms/opencode.json" ".opencode.json" && {
+          echo -e "  ${YELLOW}Edit .opencode.json: set the absolute path to mcp-server/index.js and your API token.${NC}"
+        }
+      fi
+    fi
+    echo -e "  ${GREEN}✓ Done. Run opencode in this directory. Use /fieldtwin to activate the agent.${NC}"
+    installed+=("OpenCode")
+  fi
+else
+  echo "  Skipped."
+  skipped+=("OpenCode")
 fi
 echo ""
 

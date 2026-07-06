@@ -120,13 +120,13 @@ Once the skill is active, your AI assistant can:
 | Category | Platform                                                                                                                                                                                                                   |
 |---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **IDE Extensions** | [Cursor](#cursor--windsurf) · [Windsurf](#cursor--windsurf) · [GitHub Copilot](#github-copilot) · [Cline](#cline-vs-code) · [Continue.dev](#continuedev) · [JetBrains AI](#jetbrains-ai-assistant)                         |
-| **CLI Tools** | [Claude Code](#claude-code) · [Gemini CLI](#gemini-cli) · [Aider](#aider)                                                                                                                                                   |
+| **CLI Tools** | [Claude Code](#claude-code) · [Gemini CLI](#gemini-cli) · [Aider](#aider) · [OpenCode](#opencode)                                                                                                                           |
 | **Web — Anthropic** | [Claude.ai Projects](#claudeai-projects)                                                                                                                                                                                   |
 | **Web — OpenAI** | [ChatGPT Custom GPT](#chatgpt-custom-gpt) · [ChatGPT Projects](#chatgpt-projects)                                                                                                                                          |
 | **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio)                                                                                                                                                        |
 | **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer)                                                                                                                                            |
 | **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
-| **Direct API access** | [MCP Server](#mcp-server-advanced) — works with Claude Code, Cursor, LM Studio, Gemini CLI, Cline, Continue.dev |
+| **Direct API access** | [MCP Server](#mcp-server-advanced) — works with Claude Code, Cursor, LM Studio, Gemini CLI, OpenCode, Cline, Continue.dev |
 
 ### Step 2 — Run the Hello World
 
@@ -156,7 +156,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/mai
 
 > **Note for Windows users:** If PowerShell blocks the script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and then retry.
 
-The installer covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Gemini CLI**
+The installer covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Gemini CLI · OpenCode**
 
 For each tool it shows:
 - What the skill does in that tool
@@ -427,6 +427,74 @@ The [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`@google/gemini-c
 4. Run `gemini` in your project folder — the skill is active automatically.
 
 > `GEMINI.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the skill automatically.
+
+---
+
+### OpenCode
+
+**Best file:** `fieldtwin-instructions.md` + MCP server
+
+[OpenCode](https://opencode.ai) is an open-source terminal-based AI coding agent from the SST team. It supports 75+ providers (Claude, GPT-4o, Gemini, DeepSeek, Llama, Qwen, and more) from a single config — switch models without changing anything in the skill.
+
+**Option A — Skill only (instructions always active):**
+
+1. Install OpenCode:
+   ```bash
+   # macOS / Linux
+   curl -fsSL https://opencode.ai/install | bash
+   ```
+2. Copy the instructions file to your integration project:
+   ```bash
+   curl -o fieldtwin-instructions.md \
+     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+   ```
+3. Create `.opencode.json` in your project root:
+   ```json
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "instructions": ["fieldtwin-instructions.md"]
+   }
+   ```
+4. Run `opencode` in your project folder — the skill is active for every session.
+
+---
+
+**Option B — Custom `/fieldtwin` agent:**
+
+Copy the agent file so a dedicated `fieldtwin` agent is available inside OpenCode:
+
+```bash
+mkdir -p .opencode/agents
+curl -o .opencode/agents/fieldtwin.md \
+  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.md
+```
+
+Switch to the agent inside OpenCode with the `/fieldtwin` command in the prompt.
+
+> The agent uses Claude Sonnet by default. You can change the `model` field in `.opencode/agents/fieldtwin.md` to use any other provider.
+
+---
+
+**Option C — Full setup (skill + MCP server):**
+
+The MCP server gives OpenCode direct access to your live FieldTwin data — no code generation required.
+
+1. Copy the example project config:
+   ```bash
+   curl -o .opencode.json \
+     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.json
+   ```
+2. Edit `.opencode.json` and replace:
+   - `/ABSOLUTE/PATH/TO/fieldtwin-ai-skill/mcp-server/index.js` — absolute path on your machine
+   - `your-api-token-here` — your FieldTwin API Token (Settings → API Tokens)
+   - `FIELDTWIN_BACKEND_URL` — your FieldTwin backend URL
+3. Install MCP server dependencies (once):
+   ```bash
+   cd /path/to/fieldtwin-ai-skill/mcp-server && npm install
+   ```
+4. Run `opencode` — the FieldTwin tools are available to any model you choose.
+
+> The `instructions` field and the `mcp` block can coexist in the same `.opencode.json`. Use both together for the best experience: the skill teaches the model FieldTwin patterns, and the MCP server lets it act on your live data.
 
 ---
 
@@ -745,6 +813,7 @@ Both can be active at the same time — they complement each other.
 | **Cline** (VS Code) | Any model via API key | Yes |
 | **Continue.dev** | Ollama, LM Studio, any OpenAI-compat. | Yes |
 | **Gemini CLI** | Gemini | Yes |
+| **OpenCode** | Claude, GPT-4o, Gemini, DeepSeek, Llama, 75+ providers | Yes |
 | **LM Studio** | Llama, Qwen, DeepSeek, Gemma, any local | Yes (v0.3.5+) |
 | **AnythingLLM** | Any local or cloud model | Yes |
 

@@ -53,9 +53,9 @@ Write-Host "  You will be asked before anything is written to disk."
 Separator
 Write-Host ""
 
-# ── [1/6] Claude Code ─────────────────────────────────────────────────────────
+# ── [1/7] Claude Code ─────────────────────────────────────────────────────────
 
-Write-Host "  [1/6] Claude Code" -ForegroundColor White
+Write-Host "  [1/7] Claude Code" -ForegroundColor White
 Write-Host ""
 Write-Host "  Registers a /fieldtwin slash command in Claude Code and places"
 Write-Host "  the full API reference where the command can read it."
@@ -80,9 +80,9 @@ if (Ask "Set up for Claude Code?") {
 }
 Write-Host ""
 
-# ── [2/6] GitHub Copilot ──────────────────────────────────────────────────────
+# ── [2/7] GitHub Copilot ──────────────────────────────────────────────────────
 
-Write-Host "  [2/6] GitHub Copilot" -ForegroundColor White
+Write-Host "  [2/7] GitHub Copilot" -ForegroundColor White
 Write-Host ""
 Write-Host "  Adds .github\copilot-instructions.md so Copilot reads the FieldTwin"
 Write-Host "  skill automatically for everyone working on this repository."
@@ -103,9 +103,9 @@ if (Ask "Set up for GitHub Copilot?") {
 }
 Write-Host ""
 
-# ── [3/6] Cursor / Windsurf ───────────────────────────────────────────────────
+# ── [3/7] Cursor / Windsurf ───────────────────────────────────────────────────
 
-Write-Host "  [3/6] Cursor / Windsurf" -ForegroundColor White
+Write-Host "  [3/7] Cursor / Windsurf" -ForegroundColor White
 Write-Host ""
 Write-Host "  Adds .cursorrules to the project root. Both Cursor and Windsurf"
 Write-Host "  read this file automatically — no extra setup needed."
@@ -126,9 +126,9 @@ if (Ask "Set up for Cursor / Windsurf?") {
 }
 Write-Host ""
 
-# ── [4/6] Cline ───────────────────────────────────────────────────────────────
+# ── [4/7] Cline ───────────────────────────────────────────────────────────────
 
-Write-Host "  [4/6] Cline (VS Code)" -ForegroundColor White
+Write-Host "  [4/7] Cline (VS Code)" -ForegroundColor White
 Write-Host ""
 Write-Host "  Adds .clinerules with the full FieldTwin skill. Cline injects it"
 Write-Host "  as a system prompt for every conversation in this workspace."
@@ -149,9 +149,9 @@ if (Ask "Set up for Cline?") {
 }
 Write-Host ""
 
-# ── [5/6] Aider ───────────────────────────────────────────────────────────────
+# ── [5/7] Aider ───────────────────────────────────────────────────────────────
 
-Write-Host "  [5/6] Aider" -ForegroundColor White
+Write-Host "  [5/7] Aider" -ForegroundColor White
 Write-Host ""
 Write-Host "  Creates CONVENTIONS.md with the FieldTwin skill. Aider reads this"
 Write-Host "  file automatically on startup in the current directory."
@@ -172,9 +172,9 @@ if (Ask "Set up for Aider?") {
 }
 Write-Host ""
 
-# ── [6/6] Gemini CLI ──────────────────────────────────────────────────────────
+# ── [6/7] Gemini CLI ──────────────────────────────────────────────────────────
 
-Write-Host "  [6/6] Gemini CLI" -ForegroundColor White
+Write-Host "  [6/7] Gemini CLI" -ForegroundColor White
 Write-Host ""
 Write-Host "  Creates GEMINI.md with the FieldTwin skill. The Gemini CLI reads"
 Write-Host "  this file automatically when you run 'gemini' in this directory."
@@ -192,6 +192,38 @@ if (Ask "Set up for Gemini CLI?") {
 } else {
     Write-Host "  Skipped."
     $skipped += "Gemini CLI"
+}
+Write-Host ""
+
+# ── [7/7] OpenCode ────────────────────────────────────────────────────────────
+
+Write-Host "  [7/7] OpenCode" -ForegroundColor White
+Write-Host ""
+Write-Host "  Creates .opencode\agents\fieldtwin.md — a dedicated FieldTwin agent"
+Write-Host "  available inside OpenCode for any of its 75+ supported AI providers."
+Write-Host ""
+Write-Host "  Files that will be created:" -ForegroundColor DarkGray
+Write-Host "    .opencode\agents\fieldtwin.md   <- /fieldtwin agent"
+Write-Host "    .opencode.json                  <- project config (instructions + MCP)"
+Write-Host ""
+if (Ask "Set up for OpenCode?") {
+    $ok = Guard ".opencode\agents\fieldtwin.md"
+    if ($ok) { $ok = Download-File "platforms/opencode.md" ".opencode\agents\fieldtwin.md" }
+    if ($ok) {
+        Write-Host ""
+        if (Ask "Also create .opencode.json with instructions + MCP config?") {
+            if (Guard ".opencode.json") {
+                if (Download-File "platforms/opencode.json" ".opencode.json") {
+                    Write-Host "  Edit .opencode.json: set the absolute path to mcp-server/index.js and your API token." -ForegroundColor Yellow
+                }
+            }
+        }
+        Write-Host "  Done. Run opencode in this directory. Use /fieldtwin to activate the agent." -ForegroundColor Green
+        $installed += "OpenCode"
+    }
+} else {
+    Write-Host "  Skipped."
+    $skipped += "OpenCode"
 }
 Write-Host ""
 
