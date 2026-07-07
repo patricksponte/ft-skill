@@ -120,13 +120,13 @@ Once the skill is active, your AI assistant can:
 | Category | Platform                                                                                                                                                                                                                   |
 |---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **IDE Extensions** | [Cursor](#cursor--windsurf) · [Windsurf](#cursor--windsurf) · [GitHub Copilot](#github-copilot) · [Cline](#cline-vs-code) · [Continue.dev](#continuedev) · [JetBrains AI](#jetbrains-ai-assistant)                         |
-| **CLI Tools** | [Claude Code](#claude-code) · [Gemini CLI](#gemini-cli) · [Aider](#aider) · [OpenCode](#opencode)                                                                                                                           |
+| **CLI Tools** | [Claude Code](#claude-code) · [Antigravity CLI](#antigravity-cli) · [Aider](#aider) · [OpenCode](#opencode)                                                                                                                      |
 | **Web — Anthropic** | [Claude.ai Projects](#claudeai-projects)                                                                                                                                                                                   |
 | **Web — OpenAI** | [ChatGPT Custom GPT](#chatgpt-custom-gpt) · [ChatGPT Projects](#chatgpt-projects)                                                                                                                                          |
 | **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio)                                                                                                                                                        |
 | **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer)                                                                                                                                            |
 | **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
-| **Direct API access** | [MCP Server](#mcp-server-advanced) — works with Claude Code, Cursor, LM Studio, Gemini CLI, OpenCode, Cline, Continue.dev |
+| **Direct API access** | [MCP Server](#mcp-server-advanced) — works with Claude Code, Cursor, LM Studio, Antigravity CLI, OpenCode, Cline, Continue.dev |
 
 ### Step 2 — Run the Hello World
 
@@ -156,7 +156,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/mai
 
 > **Note for Windows users:** If PowerShell blocks the script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and then retry.
 
-The installer covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Gemini CLI · OpenCode**
+The installer covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Antigravity CLI · OpenCode**
 
 For each tool it shows:
 - What the skill does in that tool
@@ -402,20 +402,25 @@ ChatGPT Projects (available on Plus/Pro) let you define custom instructions scop
 
 ---
 
-### Gemini CLI
+### Antigravity CLI
 
-**Best file:** `platforms/gemini-cli.md` (copy to `GEMINI.md`)
+**Best file:** `platforms/antigravity.md` (copy to `.antigravity.md`)
 
-The [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`@google/gemini-cli`) is Google's official command-line AI assistant. It reads `GEMINI.md` from the current project directory automatically — the same pattern as Claude Code's `CLAUDE.md`.
+[Antigravity CLI](https://antigravity.google) (`agy`) is Google's terminal-based AI coding agent and the official replacement for Gemini CLI (discontinued June 18, 2026). It reads `.antigravity.md` from the current project directory automatically — the same pattern as Claude Code's `CLAUDE.md`.
 
-1. Install the Gemini CLI:
+> **Gemini CLI users:** Gemini CLI stopped serving requests on June 18, 2026 for all free, Pro, and Ultra users. Migrate by installing Antigravity CLI and copying `.antigravity.md` instead of `GEMINI.md`. The skill content is identical.
+
+1. Install Antigravity CLI:
    ```bash
-   npm install -g @google/gemini-cli
+   # macOS / Linux
+   curl -fsSL https://antigravity.google/cli/install.sh | bash
+   # macOS (Homebrew)
+   brew install --cask antigravity-cli
    ```
 2. Copy the skill file to your integration project:
    ```bash
-   curl -o GEMINI.md \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/gemini-cli.md
+   curl -o .antigravity.md \
+     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/antigravity.md
    ```
 3. Optionally copy the full reference and endpoint list:
    ```bash
@@ -424,9 +429,9 @@ The [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`@google/gemini-c
    curl -o api-reference.json \
      https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-reference.json
    ```
-4. Run `gemini` in your project folder — the skill is active automatically.
+4. Run `agy` in your project folder — the skill is active automatically.
 
-> `GEMINI.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the skill automatically.
+> `.antigravity.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the skill automatically. `GEMINI.md` also works as a backward-compatible fallback.
 
 ---
 
@@ -434,7 +439,7 @@ The [Gemini CLI](https://github.com/google-gemini/gemini-cli) (`@google/gemini-c
 
 **Best file:** `fieldtwin-instructions.md` + MCP server
 
-[OpenCode](https://opencode.ai) is an open-source terminal-based AI coding agent from the SST team. It supports 75+ providers (Claude, GPT-4o, Gemini, DeepSeek, Llama, Qwen, and more) from a single config — switch models without changing anything in the skill.
+[OpenCode](https://opencode.ai) is an open-source terminal-based AI coding agent from the SST team. Its biggest advantage for FieldTwin users is **model flexibility**: you can use Claude, GPT-4o, Gemini, or any model hosted by NVIDIA NIM (Llama, DeepSeek, Qwen, Gemma, Mistral, and more) — all with the same skill file and MCP server. Switch models without changing anything in the skill.
 
 **Option A — Skill only (instructions always active):**
 
@@ -471,7 +476,7 @@ curl -o .opencode/agents/fieldtwin.md \
 
 Switch to the agent inside OpenCode with the `/fieldtwin` command in the prompt.
 
-> The agent uses Claude Sonnet by default. You can change the `model` field in `.opencode/agents/fieldtwin.md` to use any other provider.
+> The agent defaults to Claude Sonnet. To use a different model, edit the `model:` field in `.opencode/agents/fieldtwin.md` — for example `nvidia/deepseek-r1` or `openrouter/meta-llama/llama-3.3-70b-instruct`.
 
 ---
 
@@ -495,6 +500,51 @@ The MCP server gives OpenCode direct access to your live FieldTwin data — no c
 4. Run `opencode` — the FieldTwin tools are available to any model you choose.
 
 > The `instructions` field and the `mcp` block can coexist in the same `.opencode.json`. Use both together for the best experience: the skill teaches the model FieldTwin patterns, and the MCP server lets it act on your live data.
+
+---
+
+**Using NVIDIA-hosted models (NIM):**
+
+NVIDIA NIM provides free access to Llama, DeepSeek, Qwen, Gemma, Mistral, and more via an OpenAI-compatible API. Add a `provider` block to your `.opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["fieldtwin-instructions.md", "api-reference.json"],
+  "model": "nvidia/deepseek-r1",
+  "provider": {
+    "nvidia": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "NVIDIA NIM",
+      "options": {
+        "baseURL": "https://integrate.api.nvidia.com/v1",
+        "apiKey": "nvapi-your-key-here",
+        "timeout": 600000
+      },
+      "models": {
+        "deepseek-r1": { "name": "DeepSeek R1", "tool_call": true },
+        "llama-3.3-70b-instruct": { "name": "Llama 3.3 70B", "tool_call": true },
+        "qwen2.5-coder-32b-instruct": { "name": "Qwen 2.5 Coder 32B", "tool_call": true },
+        "gemma-3n-e4b-it": { "name": "Gemma 3N", "tool_call": true }
+      }
+    }
+  },
+  "mcp": {
+    "fieldtwin": {
+      "type": "local",
+      "command": ["node", "/ABSOLUTE/PATH/TO/fieldtwin-ai-skill/mcp-server/index.js"],
+      "environment": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here"
+      }
+    }
+  }
+}
+```
+
+Get your free NVIDIA API key at [build.nvidia.com](https://build.nvidia.com). Change `model` to switch between any model in the `models` block — no other config changes needed.
+
+> **Tool calling requirement:** The MCP server requires the model to support tool calling. All models listed above support it. If you use a different model, verify it has tool call support before using the MCP server.
 
 ---
 
@@ -812,7 +862,7 @@ Both can be active at the same time — they complement each other.
 | **Windsurf** | GPT-4o, Claude, Gemini, any | Yes |
 | **Cline** (VS Code) | Any model via API key | Yes |
 | **Continue.dev** | Ollama, LM Studio, any OpenAI-compat. | Yes |
-| **Gemini CLI** | Gemini | Yes |
+| **Antigravity CLI** | Gemini | Yes |
 | **OpenCode** | Claude, GPT-4o, Gemini, DeepSeek, Llama, 75+ providers | Yes |
 | **LM Studio** | Llama, Qwen, DeepSeek, Gemma, any local | Yes (v0.3.5+) |
 | **AnythingLLM** | Any local or cloud model | Yes |
@@ -892,13 +942,13 @@ LM Studio 0.3.5+ supports MCP natively.
      - `FIELDTWIN_SUBPROJECT_ID` = (optional)
 4. Click **Save**. The server starts automatically when you open a chat.
 
-Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 98 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
+Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 105 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
 
 ---
 
-### Setup — Gemini CLI
+### Setup — Antigravity CLI
 
-Gemini CLI reads MCP servers from `~/.gemini/settings.json` (global) or `.gemini/settings.json` in the project directory.
+Antigravity CLI reads MCP servers from a dedicated config file. For a workspace-specific setup, create `.agents/mcp_config.json` in your project root. For a global setup (all projects), use `~/.gemini/antigravity-cli/mcp_config.json`.
 
 ```json
 {
@@ -916,7 +966,7 @@ Gemini CLI reads MCP servers from `~/.gemini/settings.json` (global) or `.gemini
 }
 ```
 
-Restart Gemini CLI after saving. Type `gemini` in your project folder and the `fieldtwin` tools will be available automatically.
+Run `agy` in your project folder. Type `/mcp` inside the session to verify the `fieldtwin` server is connected.
 
 ---
 
@@ -981,7 +1031,7 @@ The AI will call the MCP server and show you live results from your account.
 
 ---
 
-### Available tools (98)
+### Available tools (105)
 
 | Category | Tools |
 |---|---|
@@ -1091,7 +1141,8 @@ fieldtwin-ai-skill/
 ├── platforms/
 │   ├── claude-code-skill.md          ← Claude Code /fieldtwin skill
 │   ├── copilot-instructions.md       ← GitHub Copilot, Cline, JetBrains AI
-│   ├── gemini-cli.md                 ← Gemini CLI (copy to GEMINI.md)
+│   ├── antigravity.md                ← Antigravity CLI (copy to .antigravity.md)
+│   ├── gemini-cli.md                 ← Gemini CLI legacy (discontinued June 2026)
 │   └── .cursorrules                  ← Cursor / Windsurf
 │
 ├── mcp-server/

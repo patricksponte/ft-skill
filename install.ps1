@@ -172,26 +172,27 @@ if (Ask "Set up for Aider?") {
 }
 Write-Host ""
 
-# ── [6/7] Gemini CLI ──────────────────────────────────────────────────────────
+# ── [6/7] Antigravity CLI ─────────────────────────────────────────────────────
 
-Write-Host "  [6/7] Gemini CLI" -ForegroundColor White
+Write-Host "  [6/7] Antigravity CLI" -ForegroundColor White
 Write-Host ""
-Write-Host "  Creates GEMINI.md with the FieldTwin skill. The Gemini CLI reads"
-Write-Host "  this file automatically when you run 'gemini' in this directory."
+Write-Host "  Creates .antigravity.md with the FieldTwin skill. Antigravity CLI"
+Write-Host "  reads this file automatically when you run 'agy' in this directory."
+Write-Host "  (Replaces Gemini CLI, discontinued June 18, 2026)"
 Write-Host ""
 Write-Host "  Files that will be created:" -ForegroundColor DarkGray
-Write-Host "    GEMINI.md"
+Write-Host "    .antigravity.md"
 Write-Host ""
-if (Ask "Set up for Gemini CLI?") {
-    if (Guard "GEMINI.md") {
-        if (Download-File "platforms/gemini-cli.md" "GEMINI.md") {
-            Write-Host "  Done. Run gemini in this directory to activate the skill." -ForegroundColor Green
-            $installed += "Gemini CLI"
+if (Ask "Set up for Antigravity CLI?") {
+    if (Guard ".antigravity.md") {
+        if (Download-File "platforms/antigravity.md" ".antigravity.md") {
+            Write-Host "  Done. Run agy in this directory to activate the skill." -ForegroundColor Green
+            $installed += "Antigravity CLI"
         }
-    } else { $skipped += "Gemini CLI" }
+    } else { $skipped += "Antigravity CLI" }
 } else {
     Write-Host "  Skipped."
-    $skipped += "Gemini CLI"
+    $skipped += "Antigravity CLI"
 }
 Write-Host ""
 

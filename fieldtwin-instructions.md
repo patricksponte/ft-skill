@@ -314,31 +314,77 @@ window.parent.postMessage({ event: 'clearSelection' }, '*');
 
 ### Get Project Data
 
+Send the request, then listen for the response event in your message handler:
+
 ```javascript
+// Send
 window.parent.postMessage({ event: 'getProjectData' }, '*');
-// Response comes back as a 'getProjectData' message event
+
+// Response — arrives as a message event with the same event name
+window.addEventListener('message', function(event) {
+  const msg = event.data;
+  if (msg.event === 'getProjectData') {
+    const { project, subProject } = msg.data;
+    // project:    { id, name, description, ... }
+    // subProject: { id, name, description, locked, vendorAttributes, ... }
+    console.log('Project:', project.name, '| SubProject:', subProject.name);
+  }
+});
 ```
 
 ### Query Resources by Tag
 
+Uses a `queryId` so multiple async queries can be correlated to their responses:
+
 ```javascript
+// Send
 window.parent.postMessage({
   event: 'getResourcesByTags',
   data: {
     tags: ['status::active'],
     resourceTypes: ['stagedAsset'],
-    queryId: 'my-query-1'
+    queryId: 'my-query-1'   // echoed back in the response
   }
 }, '*');
+
+// Response
+window.addEventListener('message', function(event) {
+  const msg = event.data;
+  if (msg.event === 'getResourcesByTags') {
+    const { queryId, resources } = msg.data;
+    // queryId:   matches the string sent in the request — use to correlate async queries
+    // resources: array of matching resources
+    //   [{ type: 'stagedAsset', id: '...', name: '...' }, ...]
+    //   type can be: stagedAsset | well | connection | shape | overlay
+    if (queryId === 'my-query-1') {
+      console.log('Matching assets:', resources);
+    }
+  }
+});
 ```
 
 ### Get Visible Resources
 
+Returns every resource currently visible in the 3D view:
+
 ```javascript
+// Send
 window.parent.postMessage({
   event: 'getVisibleResources',
   data: { resourceTypes: ['stagedAsset', 'well'] }
 }, '*');
+
+// Response
+window.addEventListener('message', function(event) {
+  const msg = event.data;
+  if (msg.event === 'getVisibleResources') {
+    const { resources } = msg.data;
+    // resources: array of visible resources
+    //   [{ type: 'stagedAsset', id: '...', name: '...' }, ...]
+    //   filtered to the resourceTypes requested
+    console.log('Visible resources:', resources);
+  }
+});
 ```
 
 ### Open a Document

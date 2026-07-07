@@ -480,6 +480,28 @@ server.tool(
     ok(await api('DELETE', `${BASE(subProjectId)}/wellBoreSegment/${wellBoreSegmentId}`))
 );
 
+server.tool(
+  'get_well_bores',
+  'List all well bores (trajectories) for a specific well.',
+  {
+    wellId:       z.string().describe('Well ID'),
+    subProjectId: z.string().optional()
+  },
+  async ({ wellId, subProjectId }) =>
+    ok(await api('GET', `${BASE(subProjectId)}/well/${wellId}/wellBores`))
+);
+
+server.tool(
+  'get_well_bore',
+  'Get a single well bore by ID.',
+  {
+    wellBoreId:   z.string().describe('Well bore ID'),
+    subProjectId: z.string().optional()
+  },
+  async ({ wellBoreId, subProjectId }) =>
+    ok(await api('GET', `${BASE(subProjectId)}/wellBore/${wellBoreId}`))
+);
+
 // ==========================================================================
 // CONNECTIONS
 // ==========================================================================
@@ -814,6 +836,68 @@ server.tool(
   },
   async ({ id, subProjectId, ...body }) =>
     ok(await api('PATCH', `${BASE(subProjectId)}/overlay/${id}`, body))
+);
+
+// ==========================================================================
+// FRAMES
+// ==========================================================================
+
+server.tool(
+  'get_frames',
+  'List all frames in a subproject. Frames are 2D/3D bounding boxes used to define spatial zones or reference areas.',
+  { subProjectId: z.string().optional() },
+  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/frames`))
+);
+
+server.tool(
+  'get_frame',
+  'Get a single frame by ID.',
+  { id: z.string(), subProjectId: z.string().optional() },
+  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/frame/${id}`))
+);
+
+server.tool(
+  'create_frame',
+  'Create a new frame in a subproject.',
+  {
+    name:             z.string().describe('Frame name'),
+    x:                z.number().describe('X coordinate of the frame origin'),
+    y:                z.number().describe('Y coordinate of the frame origin'),
+    z:                z.number().optional().default(0).describe('Z coordinate of the frame origin'),
+    rotation:         z.number().optional().default(0).describe('Rotation in degrees'),
+    visible:          z.boolean().optional().default(true),
+    tags:             z.array(z.string()).optional().describe('Tags in key::value format'),
+    vendorAttributes: z.record(z.unknown()).optional(),
+    subProjectId:     z.string().optional()
+  },
+  async ({ subProjectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId)}/frame`, body))
+);
+
+server.tool(
+  'update_frame',
+  'Update an existing frame.',
+  {
+    id:               z.string().describe('Frame ID'),
+    name:             z.string().optional(),
+    x:                z.number().optional(),
+    y:                z.number().optional(),
+    z:                z.number().optional(),
+    rotation:         z.number().optional(),
+    visible:          z.boolean().optional(),
+    tags:             z.array(z.string()).optional(),
+    vendorAttributes: z.record(z.unknown()).optional(),
+    subProjectId:     z.string().optional()
+  },
+  async ({ id, subProjectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId)}/frame/${id}`, body))
+);
+
+server.tool(
+  'delete_frame',
+  'Delete a frame.',
+  { id: z.string(), subProjectId: z.string().optional() },
+  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/frame/${id}`))
 );
 
 // ==========================================================================

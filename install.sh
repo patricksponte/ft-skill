@@ -191,28 +191,29 @@ else
 fi
 echo ""
 
-# ── [6/7] Gemini CLI ──────────────────────────────────────────────────────────
+# ── [6/7] Antigravity CLI ─────────────────────────────────────────────────────
 
-echo -e "${BOLD}  [6/7] Gemini CLI${NC}"
+echo -e "${BOLD}  [6/7] Antigravity CLI${NC}"
 echo ""
-echo "  Creates GEMINI.md with the FieldTwin skill. The Gemini CLI reads"
-echo "  this file automatically when you run 'gemini' in this directory."
+echo "  Creates .antigravity.md with the FieldTwin skill. Antigravity CLI"
+echo "  reads this file automatically when you run 'agy' in this directory."
+echo "  (Replaces Gemini CLI, discontinued June 18, 2026)"
 echo ""
 echo -e "  ${DIM}Files that will be created:${NC}"
-echo "    GEMINI.md"
+echo "    .antigravity.md"
 echo ""
-if ask "Set up for Gemini CLI?"; then
-  if guard "GEMINI.md"; then
-    download "platforms/gemini-cli.md" "GEMINI.md" && {
-      echo -e "  ${GREEN}✓ Done. Run gemini in this directory to activate the skill.${NC}"
-      installed+=("Gemini CLI")
+if ask "Set up for Antigravity CLI?"; then
+  if guard ".antigravity.md"; then
+    download "platforms/antigravity.md" ".antigravity.md" && {
+      echo -e "  ${GREEN}✓ Done. Run agy in this directory to activate the skill.${NC}"
+      installed+=("Antigravity CLI")
     }
   else
-    skipped+=("Gemini CLI")
+    skipped+=("Antigravity CLI")
   fi
 else
   echo "  Skipped."
-  skipped+=("Gemini CLI")
+  skipped+=("Antigravity CLI")
 fi
 echo ""
 
