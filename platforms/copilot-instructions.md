@@ -39,7 +39,7 @@ headers: { 'token': 'API_TOKEN', 'Content-Type': 'application/json' }
 ```
 
 Use `-` as the `projectId` in all API paths inside an integration:
-`/API/v1.10/project/-/subProject/{subProjectId}/...`
+`/API/v1.10/-/subProject/{subProjectId}/...`
 
 ## Setup Checklist
 
@@ -61,7 +61,7 @@ window.addEventListener('message', function(event) {
     session = {
       token:        msg.token,
       backendUrl:   msg.backendUrl,
-      subProjectId: msg.subProject,
+      subProjectId: msg.subProject.split(':').pop(),  // may arrive as "id:id" format
       customTabId:  msg.customTabId,
       canEdit:      msg.canEdit
     };
@@ -217,7 +217,7 @@ window.parent.postMessage({ event: 'getProjectData' }, '*');
 ## REST API Access
 
 ```javascript
-const BASE = `/API/v1.10/project/-/subProject/${session.subProjectId}`;
+const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
 const H = { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' };
 
 // READ
@@ -228,7 +228,7 @@ const shapes      = await fetch(`${session.backendUrl}${BASE}/shapes`, { headers
 const overlays    = await fetch(`${session.backendUrl}${BASE}/overlays`, { headers: H }).then(r => r.json());
 const frames      = await fetch(`${session.backendUrl}${BASE}/frames`, { headers: H }).then(r => r.json());
 const annotations = await fetch(`${session.backendUrl}${BASE}/annotations`, { headers: H }).then(r => r.json());
-const metaDefs    = await fetch(`${session.backendUrl}/API/v1.10/project/-/metaDataDefinitions`, { headers: H }).then(r => r.json());
+const metaDefs    = await fetch(`${session.backendUrl}/API/v1.10/-/metaDataDefinitions`, { headers: H }).then(r => r.json());
 const meta        = await fetch(`${session.backendUrl}${BASE}/${resourceId}/metaData`, { headers: H }).then(r => r.json());
 
 // WRITE

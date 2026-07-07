@@ -499,7 +499,7 @@
         <div class="check-body">
           <div class="check-title">REST API call succeeds</div>
           <div class="check-desc" id="chk-apiping-desc">
-            A live GET request to <code>/API/v1.10/project/-/subProject/{id}/stagedAssets</code>
+            A live GET request to <code>/API/v1.10/-/subProject/{id}/stagedAssets</code>
             using the received token and backendUrl.
             <br><br>
             <strong>Common failures:</strong><br>
@@ -709,9 +709,9 @@
 
       let path;
       if (isProjectLevel) {
-        path = `/API/v1.10/project/${session.projectId}/metaDataDefinitions`;
+        path = `/API/v1.10/${session.projectId}/metaDataDefinitions`;
       } else {
-        path = `/API/v1.10/project/${session.projectId}/subProject/${session.subProjectId}/${resource}`;
+        path = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}/${resource}`;
       }
 
       const url = `${session.backendUrl}${path}`;
@@ -902,7 +902,7 @@
 
       // 8. Live API ping
       if (session.token && session.backendUrl && session.subProjectId) {
-        const url = `${session.backendUrl}/API/v1.10/project/${session.projectId}/subProject/${session.subProjectId}/stagedAssets`;
+        const url = `${session.backendUrl}/API/v1.10/${session.projectId}/subProject/${session.subProjectId}/stagedAssets`;
         try {
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${session.token}` } });
           if (res.ok) {

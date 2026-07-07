@@ -42,7 +42,7 @@ function resolveSub(subProjectId) {
 }
 
 const BASE = (subProjectId) =>
-  `/API/v1.10/project/-/subProject/${resolveSub(subProjectId)}`;
+  `/API/v1.10/-/subProject/${resolveSub(subProjectId)}`;
 
 function ok(data) {
   return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };

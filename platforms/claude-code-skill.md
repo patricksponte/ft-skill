@@ -37,7 +37,7 @@ Two methods supported:
 
 **Never set both headers at the same time.**
 
-> Use `-` as `projectId` in API paths — e.g. `/API/v1.10/project/-/subProject/{subProjectId}/stagedAssets`
+> Use `-` as `projectId` in API paths — e.g. `/API/v1.10/-/subProject/{subProjectId}/stagedAssets`
 
 ---
 
@@ -56,7 +56,7 @@ window.addEventListener('message', function(event) {
     session = {
       token:        msg.token,
       backendUrl:   msg.backendUrl,
-      subProjectId: msg.subProject,   // Note: msg.subProject, not msg.subProjectId
+      subProjectId: msg.subProject.split(':').pop(),  // may arrive as "id:id" format
       customTabId:  msg.customTabId,
       canEdit:      msg.canEdit
     };
@@ -108,7 +108,7 @@ All messages use: `window.parent.postMessage(payload, '*')`
 ## REST API Helpers
 
 ```javascript
-const BASE = `/API/v1.10/project/-/subProject/${session.subProjectId}`;
+const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
 const HEADERS = { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' };
 
 async function apiGet(path) {
@@ -143,7 +143,7 @@ const shapes      = await apiGet(`${BASE}/shapes`);
 const overlays    = await apiGet(`${BASE}/overlays`);
 const frames      = await apiGet(`${BASE}/frames`);
 const annotations = await apiGet(`${BASE}/annotations`);
-const metaDefs    = await apiGet(`/API/v1.10/project/-/metaDataDefinitions`);
+const metaDefs    = await apiGet(`/API/v1.10/-/metaDataDefinitions`);
 const meta        = await apiGet(`${BASE}/${resourceId}/metaData`);
 
 await apiPost(`${BASE}/stagedAssets`, { name: 'My Asset', initialState: { x: 665000, y: 400000, z: 0, rotation: 0 } });
