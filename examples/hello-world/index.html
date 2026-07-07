@@ -291,6 +291,10 @@
     <div id="info-grid" class="info-grid">
       <div class="section-title">Session Info</div>
       <div class="info-row">
+        <span class="info-label">Project ID</span>
+        <span class="info-value" id="val-project">—</span>
+      </div>
+      <div class="info-row">
         <span class="info-label">SubProject ID</span>
         <span class="info-value" id="val-subproject">—</span>
       </div>
@@ -319,6 +323,11 @@
     <div class="section-title">Event Log</div>
     <div class="event-log" id="log">
       <div class="empty-log">No events yet.</div>
+    </div>
+
+    <div id="raw-loaded-section" style="display:none;margin-bottom:14px;">
+      <div class="section-title">Raw <code>loaded</code> event fields (token hidden)</div>
+      <div id="raw-loaded" style="display:flex;flex-direction:column;gap:4px;"></div>
     </div>
 
     <div id="selection-box" class="selection-box">
@@ -590,22 +599,42 @@
 
         case 'loaded': {
           loaded = true;
+
+          // FieldTwin sends subProject as "subProjectId:subProjectId" in some versions.
+          // Extract the real subProjectId (part after the colon).
+          const rawSubProject = msg.subProject || '';
+          const subProjectId  = rawSubProject.split(':').pop();
+
+          // Project ID: try known field names, fall back to '-' (JWT-based shorthand).
+          const projectId = msg.project || msg.projectId || msg.accountId || '-';
+
           session = {
             token:        msg.token,
             backendUrl:   msg.backendUrl,
-            subProjectId: msg.subProject ? msg.subProject.split(':').pop() : '',
+            projectId:    projectId,
+            subProjectId: subProjectId,
             customTabId:  msg.customTabId,
             canEdit:      msg.canEdit,
-            apiReady:     msg.APIServerIsReady
+            apiReady:     msg.APIServerIsReady,
+            _raw:         msg   // keep full payload for debug display
           };
 
           setStatus('connected', 'Connected to FieldTwin!');
 
+          document.getElementById('val-project').textContent    = session.projectId    || '(not provided)';
           document.getElementById('val-subproject').textContent = session.subProjectId || '(not provided)';
           document.getElementById('val-backend').textContent    = session.backendUrl    || '(not provided)';
           document.getElementById('val-tabid').textContent      = session.customTabId   || '(not provided)';
           document.getElementById('val-canedit').textContent    = session.canEdit ? 'Yes' : 'No';
           document.getElementById('val-apiready').textContent   = session.apiReady ? 'Yes' : 'Waiting...';
+
+          // Show raw loaded event for debugging
+          const rawFields = Object.entries(msg)
+            .filter(([k]) => k !== 'token')
+            .map(([k, v]) => `<div class="info-row"><span class="info-label">${k}</span><span class="info-value">${JSON.stringify(v)}</span></div>`)
+            .join('');
+          document.getElementById('raw-loaded').innerHTML = rawFields;
+          document.getElementById('raw-loaded-section').style.display = 'block';
           document.getElementById('val-token').textContent      = session.token
             ? '...' + session.token.slice(-8)
             : '(not provided)';
@@ -680,9 +709,9 @@
 
       let path;
       if (isProjectLevel) {
-        path = `/API/v1.10/project/-/metaDataDefinitions`;
+        path = `/API/v1.10/project/${session.projectId}/metaDataDefinitions`;
       } else {
-        path = `/API/v1.10/project/-/subProject/${session.subProjectId}/${resource}`;
+        path = `/API/v1.10/project/${session.projectId}/subProject/${session.subProjectId}/${resource}`;
       }
 
       const url = `${session.backendUrl}${path}`;
@@ -873,7 +902,7 @@
 
       // 8. Live API ping
       if (session.token && session.backendUrl && session.subProjectId) {
-        const url = `${session.backendUrl}/API/v1.10/project/-/subProject/${session.subProjectId}/stagedAssets`;
+        const url = `${session.backendUrl}/API/v1.10/project/${session.projectId}/subProject/${session.subProjectId}/stagedAssets`;
         try {
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${session.token}` } });
           if (res.ok) {
