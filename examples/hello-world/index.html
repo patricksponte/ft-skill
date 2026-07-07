@@ -593,7 +593,7 @@
           session = {
             token:        msg.token,
             backendUrl:   msg.backendUrl,
-            subProjectId: msg.subProject,
+            subProjectId: msg.subProject ? msg.subProject.split(':').pop() : '',
             customTabId:  msg.customTabId,
             canEdit:      msg.canEdit,
             apiReady:     msg.APIServerIsReady
