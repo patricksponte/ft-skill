@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["fieldtwin-instructions.md", "api-reference.json"],
+  "mcp": {
+    "fieldtwin": {
+      "type": "local",
+      "command": ["node", "/ABSOLUTE/PATH/TO/fieldtwin-ai-skill/mcp-server/index.js"],
+      "environment": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": ""
+      }
+    }
+  }
+}
