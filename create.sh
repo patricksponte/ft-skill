@@ -58,12 +58,32 @@ while true; do
   echo -e "  ${RED}Name is required.${NC}"
 done
 
-PROJECT_DIR=$(echo "$RAW_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-_')
+PROJECT_FOLDER=$(echo "$RAW_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-_')
 
-if [[ -z "$PROJECT_DIR" ]]; then
+if [[ -z "$PROJECT_FOLDER" ]]; then
   echo -e "  ${RED}Invalid name. Use letters, numbers, hyphens, or underscores.${NC}"
   exit 1
 fi
+
+echo ""
+
+# ── Step 2 — Save location ────────────────────────────────────────────────────
+
+echo -e "${BOLD}  Step 2 — Save location${NC}"
+echo ""
+echo -e "  Where should the project be created?"
+echo -e "  Press Enter to use the current directory: ${CYAN}$(pwd)${NC}"
+echo ""
+printf "  Path (or Enter for current directory): "
+read -r SAVE_PATH
+
+if [[ -z "$SAVE_PATH" ]]; then
+  SAVE_PATH="$(pwd)"
+else
+  SAVE_PATH="${SAVE_PATH/#\~/$HOME}"  # expand ~ if present
+fi
+
+PROJECT_DIR="$SAVE_PATH/$PROJECT_FOLDER"
 
 if [[ -d "$PROJECT_DIR" ]]; then
   echo -e ""
@@ -76,9 +96,9 @@ fi
 
 echo ""
 
-# ── Step 2 — Hosting ──────────────────────────────────────────────────────────
+# ── Step 3 — Hosting ──────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  Step 2 — Hosting${NC}"
+echo -e "${BOLD}  Step 3 — Hosting${NC}"
 echo ""
 echo "  How do you plan to host this integration?"
 echo ""
@@ -99,7 +119,7 @@ echo ""
 
 # ── Step 3 — AI tools ─────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  Step 3 — AI tools${NC}"
+echo -e "${BOLD}  Step 4 — AI tools${NC}"
 echo ""
 echo "  Which AI tools do you use? Skill files will be placed"
 echo "  in the right location for each one."
@@ -152,7 +172,7 @@ echo -e "  ${GREEN}✓${NC} .gitignore"
 if [[ "$HOSTING" == "localhost" ]]; then
   cat > "$PROJECT_DIR/package.json" << EOF
 {
-  "name": "$(echo "$PROJECT_DIR" | tr '[:upper:]' '[:lower:]')",
+  "name": "$PROJECT_FOLDER",
   "version": "1.0.0",
   "scripts": {
     "start": "npx serve ."
@@ -224,7 +244,7 @@ separator
 echo -e "${BOLD}  Done! Your integration is ready.${NC}"
 separator
 echo ""
-echo -e "  Location: ${CYAN}$(pwd)/$PROJECT_DIR${NC}"
+echo -e "  Location: ${CYAN}$PROJECT_DIR${NC}"
 echo ""
 echo "  Next steps:"
 echo ""
@@ -233,7 +253,7 @@ echo ""
 
 if [[ "$HOSTING" == "localhost" ]]; then
   echo "  2. Start the local server:"
-  echo -e "     ${CYAN}cd $PROJECT_DIR && npm start${NC}"
+  echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && npm start${NC}"
   echo ""
   echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
   echo "     Use http://localhost:3000 as the URL"

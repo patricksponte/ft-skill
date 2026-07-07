@@ -52,12 +52,30 @@ while ([string]::IsNullOrWhiteSpace($RawName)) {
     }
 }
 
-$ProjectDir = $RawName.ToLower() -replace ' ', '-' -replace '[^a-z0-9\-_]', ''
+$ProjectFolder = $RawName.ToLower() -replace ' ', '-' -replace '[^a-z0-9\-_]', ''
 
-if ([string]::IsNullOrWhiteSpace($ProjectDir)) {
+if ([string]::IsNullOrWhiteSpace($ProjectFolder)) {
     Write-Host "  Invalid name. Use letters, numbers, hyphens, or underscores." -ForegroundColor Red
     exit 1
 }
+
+Write-Host ""
+
+# ── Step 2 — Save location ────────────────────────────────────────────────────
+
+Write-Host "  Step 2 — Save location" -ForegroundColor White
+Write-Host ""
+Write-Host "  Where should the project be created?"
+Write-Host "  Press Enter to use the current directory: " -NoNewline
+Write-Host (Get-Location) -ForegroundColor Cyan
+Write-Host ""
+$SavePath = Read-Host "  Path (or Enter for current directory)"
+
+if ([string]::IsNullOrWhiteSpace($SavePath)) {
+    $SavePath = (Get-Location).Path
+}
+
+$ProjectDir = Join-Path $SavePath $ProjectFolder
 
 if (Test-Path $ProjectDir) {
     Write-Host ""
@@ -70,9 +88,9 @@ if (Test-Path $ProjectDir) {
 
 Write-Host ""
 
-# ── Step 2 — Hosting ──────────────────────────────────────────────────────────
+# ── Step 3 — Hosting ──────────────────────────────────────────────────────────
 
-Write-Host "  Step 2 — Hosting" -ForegroundColor White
+Write-Host "  Step 3 — Hosting" -ForegroundColor White
 Write-Host ""
 Write-Host "  How do you plan to host this integration?"
 Write-Host ""
@@ -92,7 +110,7 @@ Write-Host ""
 
 # ── Step 3 — AI tools ─────────────────────────────────────────────────────────
 
-Write-Host "  Step 3 — AI tools" -ForegroundColor White
+Write-Host "  Step 4 — AI tools" -ForegroundColor White
 Write-Host ""
 Write-Host "  Which AI tools do you use? Skill files will be placed"
 Write-Host "  in the right location for each one."
@@ -144,7 +162,7 @@ Write-Host "  + .gitignore" -ForegroundColor Green
 
 # Hosting-specific files
 if ($Hosting -eq "localhost") {
-    $pkgName = $ProjectDir.ToLower()
+    $pkgName = $ProjectFolder.ToLower()
     @"
 {
   "name": "$pkgName",
@@ -229,7 +247,7 @@ Write-Host "  Done! Your integration is ready." -ForegroundColor White
 Separator
 Write-Host ""
 Write-Host "  Location: " -NoNewline
-Write-Host "$(Get-Location)\$ProjectDir" -ForegroundColor Cyan
+Write-Host $ProjectDir -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Next steps:"
 Write-Host ""
@@ -238,7 +256,7 @@ Write-Host ""
 
 if ($Hosting -eq "localhost") {
     Write-Host "  2. Start the local server:"
-    Write-Host "     cd $ProjectDir && npm start" -ForegroundColor Cyan
+    Write-Host "     cd `"$ProjectDir`" && npm start" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  3. In FieldTwin: Admin -> Integrations -> Create New Tab"
     Write-Host "     Use http://localhost:3000 as the URL"
