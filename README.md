@@ -139,9 +139,50 @@ Ask your AI assistant:
 
 ---
 
-## Installer Scripts
+## Scripts
 
-Instead of copying files manually, run the installer in your integration project directory. It downloads the right files from GitHub, shows you what will be installed, and asks for confirmation before writing anything.
+There are two scripts depending on your situation:
+
+| Script | When to use |
+|---|---|
+| `create` | Starting a new integration from scratch |
+| `install` | Adding the skill to a project that already exists |
+
+---
+
+### Create — new integration from scratch
+
+Run this script in any directory. It will ask you three questions (name, hosting, AI tools) and create a complete, ready-to-run integration project — including the Hello World.
+
+**Linux / macOS:**
+```bash
+curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.sh | bash
+```
+
+**Windows (PowerShell):**
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.ps1" -OutFile create.ps1
+.\create.ps1
+```
+
+The script will ask:
+1. **Integration name** — becomes the project folder name
+2. **Hosting** — GitHub Pages, Localhost, or Decide later
+3. **AI tools** — which tools to configure (Claude Code, Copilot, Cursor, Cline, Aider, Antigravity CLI, OpenCode)
+
+What gets created:
+- `index.html` — Hello World, ready to open in FieldTwin
+- `fieldtwin.config.json` — project metadata
+- `.gitignore`
+- `package.json` with `npm start` — if you chose Localhost
+- Skill files for every AI tool you selected
+- Optional git repository, initialized and committed
+
+---
+
+### Install — add the skill to an existing project
+
+Run this script inside your existing integration project directory. It adds skill files for the AI tools you use, without touching anything else.
 
 **Linux / macOS:**
 ```bash
@@ -1093,6 +1134,8 @@ fieldtwin-ai-skill/
 ├── fieldtwin-instructions.md         ← Full skill reference — large context models
 ├── api-reference.json                ← All 120+ REST endpoints (v1.10), structured JSON
 ├── api-quick-reference.md            ← Compact reference — token-limited models
+├── create.sh / create.ps1            ← Create a new integration project from scratch
+├── install.sh / install.ps1          ← Add the skill to an existing project
 │
 ├── platforms/
 │   ├── claude-code-skill.md          ← Claude Code /fieldtwin skill
