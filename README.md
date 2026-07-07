@@ -6,15 +6,38 @@ This skill gives your AI assistant complete knowledge of the FieldTwin integrati
 
 ---
 
-## Before You Start — How FieldTwin Integrations Work
+## Navigation
 
-Read this section first. It will save you a lot of confusion.
+| I want to... | Go to |
+|---|---|
+| Understand how FieldTwin integrations work | [How It Works](#how-it-works) |
+| Set up my AI tool | [Platform Setup](#platform-setup) |
+| Give the AI direct access to my live FieldTwin data | [MCP Server](#mcp-server-advanced) |
+| Create a new integration project from scratch | [Scripts](#scripts) |
+| Run the Hello World and verify my setup | [Hello World](#hello-world) |
+| See example prompts | [Example Prompts](#example-prompts) |
 
-### What is a FieldTwin integration?
+---
+
+## Quick Start (5 minutes)
+
+1. **Pick your platform below** and add the skill — takes 2 minutes
+2. **Open the Hello World** (`examples/hello-world/index.html`) in FieldTwin as an integration — you should see "Connected!"
+3. **Ask your AI:** `"I want to build a FieldTwin integration that shows a list of all assets in the current subproject."`
+
+---
+
+## How It Works
+
+<details>
+<summary><strong>What is a FieldTwin integration?</strong></summary>
 
 A FieldTwin integration is a small web page that appears as a panel inside FieldTwin. FieldTwin loads it inside an **iFrame** — think of it as a browser tab embedded directly in the platform. Your integration can read data from FieldTwin, react to user actions, and send commands back (select assets, zoom the camera, show notifications, etc.).
 
-### There are two kinds of integrations
+</details>
+
+<details>
+<summary><strong>Two types of integrations</strong></summary>
 
 **Type 1 — Frontend only**
 
@@ -40,17 +63,14 @@ FieldTwin  →  loads your HTML/JS page  →  page calls YOUR server  →  serve
 Good for: complex calculations, machine learning, data from external databases, heavy processing (e.g. Python packages for pipeline routing calculations).
 Requires a running server (locally during development, deployed for production).
 
----
+</details>
 
-### The URL problem — and how to solve it
+<details>
+<summary><strong>The URL problem — and how to solve it</strong></summary>
 
 FieldTwin needs a **public HTTPS URL** to load your integration. This means `http://localhost` does not work out of the box, because FieldTwin runs over HTTPS and browsers block HTTPS pages from loading HTTP content by default.
 
-There are two practical solutions:
-
----
-
-#### Solution A — GitHub Pages (recommended for Type 1 integrations)
+**Solution A — GitHub Pages** _(recommended for Type 1 integrations)_
 
 Push your HTML file to GitHub and enable GitHub Pages. Your integration gets a permanent HTTPS URL instantly — no server, no configuration, works from any network including restricted corporate environments.
 
@@ -58,45 +78,28 @@ Push your HTML file to GitHub and enable GitHub Pages. Your integration gets a p
 Your HTML file on GitHub  →  GitHub Pages serves it at https://your-org.github.io/your-repo/...
 ```
 
-This is the recommended path for **simple integrations and vibe coding**. The Hello World in this repository works this way.
-
----
-
-#### Solution B — localhost with Chrome override (recommended for active development)
-
-For development — especially when you have a backend server running locally — you can tell Chrome to allow your specific FieldTwin instance to load content from `http://localhost`. This is a one-time setting per FieldTwin URL.
-
-**How to enable it:**
+**Solution B — localhost with Chrome override** _(recommended for active development)_
 
 1. Open FieldTwin in Chrome.
-2. Click the **icon to the left of the URL bar** (the one that shows lock or info).
-3. Click **Site settings**.
-4. Find **Insecure content**.
-5. Change it from **Block** to **Allow**.
-6. Reload the page.
+2. Click the **icon to the left of the URL bar** (lock or info icon).
+3. Click **Site settings → Insecure content → Allow**.
+4. Reload the page.
 
-That's it. Chrome will now allow your FieldTwin session to load iFrames from `http://localhost`. This setting is saved for that FieldTwin URL.
-
-> This works for both Type 1 and Type 2 integrations. Your backend (Python, Node.js, etc.) can also run on localhost and be called by your iFrame — no tunneling tools required.
-
----
-
-#### Which solution should I use?
+Chrome will now allow your FieldTwin session to load iFrames from `http://localhost`. This setting is saved for that FieldTwin URL.
 
 | Situation | Solution |
 |---|---|
-| I just want to test the Hello World | GitHub Pages — use the link in this repo |
-| I am building a simple HTML/JS integration | GitHub Pages — push and share |
-| I am developing locally and need live reload | localhost + Chrome override |
-| I have a Python/Node backend running locally | localhost + Chrome override |
-| I am in a restricted corporate network (e.g. Petrobras) | GitHub Pages for the iFrame; your backend needs to be accessible from your machine |
-| I am deploying to production | GitHub Pages (frontend) + your cloud provider (backend) |
+| Testing the Hello World | GitHub Pages — use the link in this repo |
+| Building a simple HTML/JS integration | GitHub Pages — push and share |
+| Developing locally with live reload | localhost + Chrome override |
+| Python/Node backend running locally | localhost + Chrome override |
+| Restricted corporate network (e.g. Petrobras) | GitHub Pages for the iFrame; your backend must be accessible from your machine |
+| Deploying to production | GitHub Pages (frontend) + your cloud provider (backend) |
 
----
+</details>
 
-## What You Can Ask Your AI After Setting This Up
-
-Once the skill is active, your AI assistant can:
+<details>
+<summary><strong>What you can ask your AI after setup</strong></summary>
 
 - **Generate a complete integration from scratch** — just describe what you want to build
 - **Run a Hello World** — verify your connection with one file and a built-in troubleshooter
@@ -111,105 +114,13 @@ Once the skill is active, your AI assistant can:
 - **Work with metadata** — read and write custom fields on any resource
 - **Debug connection problems** — follow a guided troubleshooting checklist with live diagnostics
 
----
-
-## Quick Start (5 minutes)
-
-### Step 1 — Pick your platform and add the skill
-
-| Category | Platform                                                                                                                                                                                                                   |
-|---|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **IDE Extensions** | [Cursor](#cursor--windsurf) · [Windsurf](#cursor--windsurf) · [GitHub Copilot](#github-copilot) · [Cline](#cline-vs-code) · [Continue.dev](#continuedev) · [JetBrains AI](#jetbrains-ai-assistant)                         |
-| **CLI Tools** | [Claude Code](#claude-code) · [Antigravity CLI](#antigravity-cli) · [Aider](#aider) · [OpenCode](#opencode)                                                                                                                      |
-| **Web — Anthropic** | [Claude.ai Projects](#claudeai-projects)                                                                                                                                                                                   |
-| **Web — OpenAI** | [ChatGPT Custom GPT](#chatgpt-custom-gpt) · [ChatGPT Projects](#chatgpt-projects)                                                                                                                                          |
-| **Web — Google** | [Gemini Gems](#gemini-gems) · [Google AI Studio](#google-ai-studio)                                                                                                                                                        |
-| **Web — Other** | [Mistral Le Chat](#mistral-le-chat) · [Amazon Q Developer](#amazon-q-developer)                                                                                                                                            |
-| **Local Models** | [Ollama + Open WebUI](#ollama--open-webui) · [LM Studio](#lm-studio) · [Jan.ai](#janai) · [AnythingLLM](#anythingllm) · [Aider + local](#aider-with-local-models) · [Continue.dev + local](#continuedev-with-local-models) |
-| **Direct API access** | [MCP Server](#mcp-server-advanced) — works with Claude Code, Cursor, LM Studio, Antigravity CLI, OpenCode, Cline, Continue.dev |
-
-### Step 2 — Run the Hello World
-
-Open `examples/hello-world/index.html` in FieldTwin as an integration. You'll see a "Connected!" screen and a toast notification. Use the **API Test** tab to verify REST API access, and the **Troubleshoot** tab if anything isn't working.
-
-### Step 3 — Start building
-
-Ask your AI assistant:
-> "I want to build a FieldTwin integration that shows a list of all assets in the current subproject."
+</details>
 
 ---
 
-## Scripts
+## Platform Setup
 
-There are two scripts depending on your situation:
-
-| Script | When to use |
-|---|---|
-| `create` | Starting a new integration from scratch |
-| `install` | Adding the skill to a project that already exists |
-
----
-
-### Create — new integration from scratch
-
-Run this script in any directory. It will ask you three questions (name, hosting, AI tools) and create a complete, ready-to-run integration project — including the Hello World.
-
-**Linux / macOS:**
-```bash
-curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.sh | bash
-```
-
-**Windows (PowerShell):**
-```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.ps1" -OutFile create.ps1
-.\create.ps1
-```
-
-The script will ask:
-1. **Integration name** — becomes the project folder name
-2. **Hosting** — GitHub Pages, Localhost, or Decide later
-3. **AI tools** — which tools to configure (Claude Code, Copilot, Cursor, Cline, Aider, Antigravity CLI, OpenCode)
-
-What gets created:
-- `index.html` — Hello World, ready to open in FieldTwin
-- `fieldtwin.config.json` — project metadata
-- `.gitignore`
-- `package.json` with `npm start` — if you chose Localhost
-- Skill files for every AI tool you selected
-- Optional git repository, initialized and committed
-
----
-
-### Install — add the skill to an existing project
-
-Run this script inside your existing integration project directory. It adds skill files for the AI tools you use, without touching anything else.
-
-**Linux / macOS:**
-```bash
-curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.sh | bash
-```
-
-**Windows (PowerShell):**
-```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.ps1" -OutFile install.ps1
-.\install.ps1
-```
-
-> **Note for Windows users:** If PowerShell blocks the script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and then retry.
-
-The installer covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Antigravity CLI · OpenCode**
-
-For each tool it shows:
-- What the skill does in that tool
-- Which files will be created
-- A yes/no prompt before writing anything
-- A warning if a file already exists (with an overwrite prompt)
-
-Files are always downloaded from the latest version of this repository, so updates are available to everyone automatically.
-
----
-
-## Which File Should I Use?
+**Which file should I use?**
 
 | File | Size | Best for |
 |---|---|---|
@@ -227,32 +138,10 @@ Files are always downloaded from the latest version of this repository, so updat
 
 ---
 
-## Platform Setup
+### IDE Extensions
 
----
-
-### Claude Code
-
-**Best file:** `fieldtwin-instructions.md` + `api-reference.json`
-
-1. Clone or download this repository.
-2. Copy the skill file to your integration project:
-   ```bash
-   mkdir -p .claude/skills
-   cp /path/to/fieldtwin-ai-skill/platforms/claude-code-skill.md .claude/skills/fieldtwin.md
-   ```
-3. Copy the full reference for inline access:
-   ```bash
-   cp /path/to/fieldtwin-ai-skill/fieldtwin-instructions.md .claude/
-   cp /path/to/fieldtwin-ai-skill/api-reference.json .claude/
-   ```
-4. In Claude Code, type `/fieldtwin` to activate the skill in any conversation.
-
-> The skill file registers `/fieldtwin` as a slash command. Once activated, Claude Code will use `fieldtwin-instructions.md` and `api-reference.json` as its reference for the entire conversation.
-
----
-
-### GitHub Copilot
+<details>
+<summary><strong>GitHub Copilot</strong></summary>
 
 **Best file:** `platforms/copilot-instructions.md`
 
@@ -274,9 +163,10 @@ GitHub Copilot automatically reads `.github/copilot-instructions.md` from the ro
 
 > For the VS Code Copilot Chat panel, you can also open the command palette → **GitHub Copilot: Edit Settings** and point to the file manually.
 
----
+</details>
 
-### Cursor / Windsurf
+<details>
+<summary><strong>Cursor / Windsurf</strong></summary>
 
 **Best file:** `platforms/.cursorrules`
 
@@ -292,9 +182,10 @@ Both Cursor and Windsurf automatically read `.cursorrules` from the project root
 
 > **Windsurf note:** Windsurf also supports `.windsurfrules` in the project root. You can copy the same file under that name as a fallback.
 
----
+</details>
 
-### Cline (VS Code)
+<details>
+<summary><strong>Cline (VS Code)</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md`
 
@@ -310,9 +201,10 @@ Cline is a VS Code extension that supports custom system prompts per project via
 
 > **Alternative:** In the Cline panel, click the **⚙ Settings** icon → **Custom Instructions** and paste the contents of `api-quick-reference.md` for a global (non-project) setup.
 
----
+</details>
 
-### Continue.dev
+<details>
+<summary><strong>Continue.dev</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md` or `platforms/copilot-instructions.md`
 
@@ -347,9 +239,10 @@ Add the raw GitHub URL as a documentation source so Continue.dev can fetch it on
 
 Then type `@FieldTwin` in the Continue.dev chat to include the reference in any message.
 
----
+</details>
 
-### JetBrains AI Assistant
+<details>
+<summary><strong>JetBrains AI Assistant</strong></summary>
 
 **Best file:** `platforms/copilot-instructions.md`
 
@@ -363,87 +256,36 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
 
 > **Alternative:** For a per-project setup, some versions of JetBrains AI Assistant read `.jb-ai-instructions.md` from the project root — paste the contents of `platforms/copilot-instructions.md` into that file.
 
----
-
-### Aider
-
-**Best file:** `fieldtwin-instructions.md`
-
-[Aider](https://aider.chat) is a CLI coding assistant. You can inject instructions via a conventions file or by passing a file directly.
-
-**Option A — CONVENTIONS.md (auto-loaded):**
-
-```bash
-curl -o CONVENTIONS.md \
-  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
-```
-
-Aider reads `CONVENTIONS.md` from the current directory automatically on startup.
-
-**Option B — Pass as a read-only context file:**
-
-```bash
-aider --read fieldtwin-instructions.md --read api-reference.json
-```
-
-**Option C — System prompt flag:**
-
-```bash
-aider --system-prompt "$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-quick-reference.md)"
-```
+</details>
 
 ---
 
-### Claude.ai Projects
+### CLI Tools
 
-**Best file:** `fieldtwin-instructions.md`
+<details>
+<summary><strong>Claude Code</strong></summary>
 
-Claude.ai Projects let you define a persistent system prompt and attach files that stay active across all conversations in that project.
+**Best file:** `fieldtwin-instructions.md` + `api-reference.json`
 
-1. Go to [claude.ai](https://claude.ai) and click **Projects → New Project**.
-2. Name it `FieldTwin Development`.
-3. Under **Project Instructions**, paste the contents of `fieldtwin-instructions.md`.
-4. Under **Project Knowledge**, upload `api-reference.json`.
-5. Every new conversation in this project will have the skill active automatically.
+1. Clone or download this repository.
+2. Copy the skill file to your integration project:
+   ```bash
+   mkdir -p .claude/skills
+   cp /path/to/fieldtwin-ai-skill/platforms/claude-code-skill.md .claude/skills/fieldtwin.md
+   ```
+3. Copy the full reference for inline access:
+   ```bash
+   cp /path/to/fieldtwin-ai-skill/fieldtwin-instructions.md .claude/
+   cp /path/to/fieldtwin-ai-skill/api-reference.json .claude/
+   ```
+4. In Claude Code, type `/fieldtwin` to activate the skill in any conversation.
 
-> **Context window tip:** Claude supports large context windows, so you can paste the full `fieldtwin-instructions.md` without truncating it.
+> The skill file registers `/fieldtwin` as a slash command. Once activated, Claude Code will use `fieldtwin-instructions.md` and `api-reference.json` as its reference for the entire conversation.
 
----
+</details>
 
-### ChatGPT Custom GPT
-
-**Best file:** `fieldtwin-instructions.md`
-
-1. Go to [chat.openai.com](https://chat.openai.com) → **Explore GPTs → Create**.
-2. In the **Instructions** field, paste the contents of `fieldtwin-instructions.md`.
-3. Under **Knowledge**, upload `api-reference.json` as a reference file.
-4. Name it `FieldTwin Assistant` and save.
-5. Use this Custom GPT for all FieldTwin development work.
-
-> **No Custom GPT plan?** Start any conversation with:
-> ```
-> I'm sharing instructions for a FieldTwin integration skill. Please follow them for this conversation:
->
-> [paste contents of api-quick-reference.md]
-> ```
-
----
-
-### ChatGPT Projects
-
-**Best file:** `fieldtwin-instructions.md`
-
-ChatGPT Projects (available on Plus/Pro) let you define custom instructions scoped to a project.
-
-1. Go to [chat.openai.com](https://chat.openai.com) → **Projects → New Project**.
-2. Click the project name → **Customize** → **Instructions**.
-3. Paste the contents of `fieldtwin-instructions.md`.
-4. Upload `api-reference.json` as a project file (click the paperclip icon in the project sidebar).
-5. All chats in this project will have the skill active.
-
----
-
-### Antigravity CLI
+<details>
+<summary><strong>Antigravity CLI</strong></summary>
 
 **Best file:** `platforms/antigravity.md` (copy to `.antigravity.md`)
 
@@ -474,9 +316,40 @@ ChatGPT Projects (available on Plus/Pro) let you define custom instructions scop
 
 > `.antigravity.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the skill automatically. `GEMINI.md` also works as a backward-compatible fallback.
 
----
+</details>
 
-### OpenCode
+<details>
+<summary><strong>Aider</strong></summary>
+
+**Best file:** `fieldtwin-instructions.md`
+
+[Aider](https://aider.chat) is a CLI coding assistant. You can inject instructions via a conventions file or by passing a file directly.
+
+**Option A — CONVENTIONS.md (auto-loaded):**
+
+```bash
+curl -o CONVENTIONS.md \
+  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+```
+
+Aider reads `CONVENTIONS.md` from the current directory automatically on startup.
+
+**Option B — Pass as a read-only context file:**
+
+```bash
+aider --read fieldtwin-instructions.md --read api-reference.json
+```
+
+**Option C — System prompt flag:**
+
+```bash
+aider --system-prompt "$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-quick-reference.md)"
+```
+
+</details>
+
+<details>
+<summary><strong>OpenCode</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md` + MCP server
 
@@ -486,7 +359,6 @@ ChatGPT Projects (available on Plus/Pro) let you define custom instructions scop
 
 1. Install OpenCode:
    ```bash
-   # macOS / Linux
    curl -fsSL https://opencode.ai/install | bash
    ```
 2. Copy the instructions file to your integration project:
@@ -542,9 +414,66 @@ The MCP server gives OpenCode direct access to your live FieldTwin data — no c
 
 > The `instructions` field and the `mcp` block can coexist in the same `.opencode.json`. Use both together for the best experience: the skill teaches the model FieldTwin patterns, and the MCP server lets it act on your live data.
 
+</details>
+
 ---
 
-### Gemini Gems
+### Web AI
+
+<details>
+<summary><strong>Claude.ai Projects</strong></summary>
+
+**Best file:** `fieldtwin-instructions.md`
+
+Claude.ai Projects let you define a persistent system prompt and attach files that stay active across all conversations in that project.
+
+1. Go to [claude.ai](https://claude.ai) and click **Projects → New Project**.
+2. Name it `FieldTwin Development`.
+3. Under **Project Instructions**, paste the contents of `fieldtwin-instructions.md`.
+4. Under **Project Knowledge**, upload `api-reference.json`.
+5. Every new conversation in this project will have the skill active automatically.
+
+> **Context window tip:** Claude supports large context windows, so you can paste the full `fieldtwin-instructions.md` without truncating it.
+
+</details>
+
+<details>
+<summary><strong>ChatGPT Custom GPT</strong></summary>
+
+**Best file:** `fieldtwin-instructions.md`
+
+1. Go to [chat.openai.com](https://chat.openai.com) → **Explore GPTs → Create**.
+2. In the **Instructions** field, paste the contents of `fieldtwin-instructions.md`.
+3. Under **Knowledge**, upload `api-reference.json` as a reference file.
+4. Name it `FieldTwin Assistant` and save.
+5. Use this Custom GPT for all FieldTwin development work.
+
+> **No Custom GPT plan?** Start any conversation with:
+> ```
+> I'm sharing instructions for a FieldTwin integration skill. Please follow them for this conversation:
+>
+> [paste contents of api-quick-reference.md]
+> ```
+
+</details>
+
+<details>
+<summary><strong>ChatGPT Projects</strong></summary>
+
+**Best file:** `fieldtwin-instructions.md`
+
+ChatGPT Projects (available on Plus/Pro) let you define custom instructions scoped to a project.
+
+1. Go to [chat.openai.com](https://chat.openai.com) → **Projects → New Project**.
+2. Click the project name → **Customize** → **Instructions**.
+3. Paste the contents of `fieldtwin-instructions.md`.
+4. Upload `api-reference.json` as a project file (click the paperclip icon in the project sidebar).
+5. All chats in this project will have the skill active.
+
+</details>
+
+<details>
+<summary><strong>Gemini Gems</strong></summary>
 
 **Best file:** `platforms/copilot-instructions.md`
 
@@ -555,9 +484,10 @@ The MCP server gives OpenCode direct access to your live FieldTwin data — no c
 
 > **Context limit note:** Gemini Gems have a system prompt character limit. If the instructions are truncated, use `api-quick-reference.md` instead, which is more compact.
 
----
+</details>
 
-### Google AI Studio
+<details>
+<summary><strong>Google AI Studio</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md`
 
@@ -571,9 +501,10 @@ Google AI Studio lets you create prompts with a persistent system instruction an
 
 > AI Studio also supports sharing prompts via URL — share yours with your team to give everyone the same starting point.
 
----
+</details>
 
-### Mistral Le Chat
+<details>
+<summary><strong>Mistral Le Chat</strong></summary>
 
 **Best file:** `api-quick-reference.md`
 
@@ -586,9 +517,10 @@ Google AI Studio lets you create prompts with a persistent system instruction an
 
 > **Ad-hoc use:** Start any Le Chat conversation by pasting `api-quick-reference.md` as the first message.
 
----
+</details>
 
-### Amazon Q Developer
+<details>
+<summary><strong>Amazon Q Developer</strong></summary>
 
 **Best file:** `platforms/copilot-instructions.md`
 
@@ -603,20 +535,19 @@ Amazon Q Developer (available in VS Code, JetBrains, and the AWS console) suppor
 2. Amazon Q Developer will include this file as context in inline suggestions and chat responses.
 3. In the Q chat panel, you can also type `/dev` followed by your question to use the full context.
 
+</details>
+
 ---
 
-## Local Models
-
-Running a local model? You can still use this skill — the key is injecting the instructions as a system prompt. All major local model runners support this.
+### Local Models
 
 > **Model recommendations for best results:**
 > - Code tasks: `deepseek-coder-v2`, `qwen2.5-coder:32b`, `codestral`
 > - General: `llama3.1:70b`, `mistral-large`, `gemma3:27b`
 > - Low RAM: `qwen2.5-coder:7b`, `llama3.2:3b` with `api-quick-reference.md`
 
----
-
-### Ollama + Open WebUI
+<details>
+<summary><strong>Ollama + Open WebUI</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md` or `api-quick-reference.md` depending on the model's context window.
 
@@ -644,7 +575,6 @@ Running a local model? You can still use this skill — the key is injecting the
 **Ollama CLI (direct):**
 
 ```bash
-# Create a Modelfile
 cat > Modelfile << 'EOF'
 FROM qwen2.5-coder:32b
 SYSTEM """
@@ -652,10 +582,7 @@ $(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-quick-re
 """
 EOF
 
-# Build the custom model
 ollama create fieldtwin-dev -f Modelfile
-
-# Run it
 ollama run fieldtwin-dev
 ```
 
@@ -665,21 +592,16 @@ ollama run fieldtwin-dev
 curl http://localhost:11434/api/chat -d '{
   "model": "qwen2.5-coder:32b",
   "messages": [
-    {
-      "role": "system",
-      "content": "PASTE api-quick-reference.md CONTENTS HERE"
-    },
-    {
-      "role": "user",
-      "content": "Build me a FieldTwin integration that lists all assets"
-    }
+    {"role": "system", "content": "PASTE api-quick-reference.md CONTENTS HERE"},
+    {"role": "user",   "content": "Build me a FieldTwin integration that lists all assets"}
   ]
 }'
 ```
 
----
+</details>
 
-### LM Studio
+<details>
+<summary><strong>LM Studio</strong></summary>
 
 **Best file:** `api-quick-reference.md` (for most models) or `fieldtwin-instructions.md` (for models with 32k+ context)
 
@@ -700,7 +622,6 @@ curl http://localhost:11434/api/chat -d '{
 from openai import OpenAI
 
 client = OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
-
 system_prompt = open("api-quick-reference.md").read()
 
 response = client.chat.completions.create(
@@ -713,9 +634,12 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
----
+Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 105 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
 
-### Jan.ai
+</details>
+
+<details>
+<summary><strong>Jan.ai</strong></summary>
 
 **Best file:** `api-quick-reference.md`
 
@@ -740,9 +664,10 @@ curl http://localhost:1337/v1/chat/completions \
   }'
 ```
 
----
+</details>
 
-### AnythingLLM
+<details>
+<summary><strong>AnythingLLM</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md` + `api-reference.json`
 
@@ -750,18 +675,16 @@ curl http://localhost:1337/v1/chat/completions \
 
 1. Install AnythingLLM (Desktop or Docker) and connect it to Ollama, LM Studio, or any OpenAI-compatible backend.
 2. Create a **New Workspace** named `FieldTwin`.
-3. In **Workspace Settings → Prompt**:
-   - Set the **System Prompt** to the contents of `fieldtwin-instructions.md`.
-4. In the workspace **Documents** section:
-   - Upload `api-reference.json` — AnythingLLM will chunk and embed it for RAG.
-   - The AI will be able to look up specific endpoints when needed.
+3. In **Workspace Settings → Prompt**, set the **System Prompt** to the contents of `fieldtwin-instructions.md`.
+4. In the workspace **Documents** section, upload `api-reference.json` — AnythingLLM will chunk and embed it for RAG.
 5. Start chatting in the `FieldTwin` workspace.
 
 > **RAG tip:** Uploading `api-reference.json` as a document lets AnythingLLM retrieve specific endpoints even when they don't fit in the active context window.
 
----
+</details>
 
-### Aider with Local Models
+<details>
+<summary><strong>Aider with Local Models</strong></summary>
 
 **Best file:** `fieldtwin-instructions.md` via `CONVENTIONS.md`
 
@@ -769,7 +692,6 @@ Aider works with any OpenAI-compatible API, including Ollama and LM Studio.
 
 ```bash
 # With Ollama
-OLLAMA_API_BASE=http://localhost:11434
 aider --model ollama/qwen2.5-coder:32b \
       --read fieldtwin-instructions.md \
       --read api-reference.json
@@ -785,9 +707,10 @@ cp fieldtwin-instructions.md CONVENTIONS.md
 aider --model ollama/qwen2.5-coder:32b
 ```
 
----
+</details>
 
-### Continue.dev with Local Models
+<details>
+<summary><strong>Continue.dev with Local Models</strong></summary>
 
 Continue.dev works with Ollama, LM Studio, and any OpenAI-compatible server.
 
@@ -816,15 +739,16 @@ Edit `~/.continue/config.json`:
 
 Restart VS Code after saving. The skill-enabled model will appear in the Continue.dev model picker.
 
+</details>
+
 ---
 
 ## MCP Server (Advanced)
 
 The MCP (Model Context Protocol) server gives any compatible AI client **direct access to your FieldTwin data** — no code generation required. Instead of asking the AI to write API calls for you to run, it can execute them directly and show you live results in the conversation.
 
-MCP is an open protocol. The model (Claude, Gemini, GPT-4o, DeepSeek, Llama, etc.) only needs to support **tool calling** — which all modern LLMs do. What matters is whether your **client application** supports MCP.
-
-### Skill vs MCP Server — which one do I need?
+<details>
+<summary><strong>Skill vs MCP Server — which one do I need?</strong></summary>
 
 | | Skill | MCP Server |
 |---|---|---|
@@ -835,21 +759,14 @@ MCP is an open protocol. The model (Claude, Gemini, GPT-4o, DeepSeek, Llama, etc
 | **Requires** | Any AI assistant | A MCP-compatible client + Node.js + FieldTwin API Token |
 | **Works offline** | Yes (just instructions) | No (makes real API calls) |
 
-**Use the Skill when you want code.** Use the MCP server when you want the AI to query or act on your live FieldTwin data directly.
+**Use the Skill when you want code.** Use the MCP server when you want the AI to query or act on your live FieldTwin data directly. Both can be active at the same time — they complement each other.
 
-Both can be active at the same time — they complement each other.
+</details>
 
----
-
-### Requirements
-
+**Requirements:**
 - [Node.js](https://nodejs.org) 18 or later
-- A MCP-compatible client (see table below)
-- A FieldTwin **API Token** (from FieldTwin Settings → API Tokens)
-
-> The API Token is **not** the same as the JWT token from the `loaded` event. It is account-level and stays on your machine — never put it in your integration's HTML/JS code.
-
-### Compatible clients
+- A FieldTwin **API Token** (Settings → API Tokens)
+- A MCP-compatible client:
 
 | Client | Models you can use | MCP support |
 |---|---|---|
@@ -863,18 +780,18 @@ Both can be active at the same time — they complement each other.
 | **LM Studio** | Llama, Qwen, DeepSeek, Gemma, any local | Yes (v0.3.5+) |
 | **AnythingLLM** | Any local or cloud model | Yes |
 
----
+> The API Token is **not** the same as the JWT token from the `loaded` event. It is account-level and stays on your machine — never put it in your integration's HTML/JS code.
 
-**Step 0 — Install dependencies (all clients):**
+**Step 0 — Install dependencies (run once):**
 
 ```bash
-cd mcp-server
-npm install
+cd mcp-server && npm install
 ```
 
 ---
 
-### Setup — Claude Code
+<details>
+<summary><strong>Setup — Claude Code</strong></summary>
 
 Create or edit `.claude/settings.json` in your project directory. For a global setup (available in all projects), use `~/.claude/settings.json` instead.
 
@@ -894,13 +811,14 @@ Create or edit `.claude/settings.json` in your project directory. For a global s
 }
 ```
 
-Replace `/absolute/path/to/fieldtwin-ai-skill` with the actual absolute path on your machine. Restart Claude Code after saving.
+Replace `/absolute/path/to/fieldtwin-ai-skill` with the actual path on your machine. Restart Claude Code after saving.
 
----
+</details>
 
-### Setup — Cursor
+<details>
+<summary><strong>Setup — Cursor</strong></summary>
 
-Cursor reads MCP servers from `~/.cursor/mcp.json` (global, all projects) or `.cursor/mcp.json` (per-project). You can also add them via **Cursor Settings → MCP → Add server**.
+Cursor reads MCP servers from `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (per-project). You can also add them via **Cursor Settings → MCP → Add server**.
 
 ```json
 {
@@ -918,33 +836,30 @@ Cursor reads MCP servers from `~/.cursor/mcp.json` (global, all projects) or `.c
 }
 ```
 
-The JSON format is identical to Claude Code. Once configured, you can use any model in Cursor (GPT-4o, Claude, Gemini, DeepSeek, etc.) — all will have access to the FieldTwin tools.
+Once configured, any model in Cursor (GPT-4o, Claude, Gemini, DeepSeek, etc.) will have access to the FieldTwin tools.
 
----
+</details>
 
-### Setup — LM Studio
+<details>
+<summary><strong>Setup — LM Studio</strong></summary>
 
 LM Studio 0.3.5+ supports MCP natively.
 
-1. Open LM Studio → click the **Developer** tab (or the plug icon in the sidebar).
+1. Open LM Studio → click the **Developer** tab (or plug icon in the sidebar).
 2. Select **MCP Servers → Add server**.
-3. Fill in the fields:
+3. Fill in:
    - **Name:** `fieldtwin`
    - **Command:** `node`
    - **Args:** `/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js`
-   - **Environment variables:**
-     - `FIELDTWIN_BACKEND_URL` = `https://backend.fieldtwin.com`
-     - `FIELDTWIN_API_TOKEN` = your token
-     - `FIELDTWIN_SUBPROJECT_ID` = (optional)
+   - **Environment variables:** `FIELDTWIN_BACKEND_URL`, `FIELDTWIN_API_TOKEN`, `FIELDTWIN_SUBPROJECT_ID`
 4. Click **Save**. The server starts automatically when you open a chat.
 
-Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, etc.) will have access to all 105 FieldTwin tools — as long as the model supports tool calling (most 7B+ models do).
+</details>
 
----
+<details>
+<summary><strong>Setup — Antigravity CLI</strong></summary>
 
-### Setup — Antigravity CLI
-
-Antigravity CLI reads MCP servers from a dedicated config file. For a workspace-specific setup, create `.agents/mcp_config.json` in your project root. For a global setup (all projects), use `~/.gemini/antigravity-cli/mcp_config.json`.
+Create `.agents/mcp_config.json` in your project root for a workspace-specific setup. For a global setup (all projects), use `~/.gemini/antigravity-cli/mcp_config.json`.
 
 ```json
 {
@@ -964,13 +879,14 @@ Antigravity CLI reads MCP servers from a dedicated config file. For a workspace-
 
 Run `agy` in your project folder. Type `/mcp` inside the session to verify the `fieldtwin` server is connected.
 
----
+</details>
 
-### Setup — Cline (VS Code)
+<details>
+<summary><strong>Setup — Cline (VS Code)</strong></summary>
 
 1. Open VS Code → click the Cline icon in the sidebar.
 2. Click **MCP Servers → Configure MCP Servers**.
-3. This opens `cline_mcp_settings.json`. Add the `fieldtwin` entry:
+3. Add the `fieldtwin` entry to `cline_mcp_settings.json`:
 
 ```json
 {
@@ -988,11 +904,12 @@ Run `agy` in your project folder. Type `/mcp` inside the session to verify the `
 }
 ```
 
-Save the file. Cline will connect to the server immediately (no restart needed). You can then use any model configured in Cline.
+Save the file. Cline will connect to the server immediately — no restart needed.
 
----
+</details>
 
-### Setup — Continue.dev
+<details>
+<summary><strong>Setup — Continue.dev</strong></summary>
 
 Edit `~/.continue/config.json` and add an `mcpServers` block:
 
@@ -1016,18 +933,32 @@ Edit `~/.continue/config.json` and add an `mcpServers` block:
 
 Restart VS Code after saving. Continue.dev will expose the FieldTwin tools to whichever model you have active — including local models via Ollama or LM Studio.
 
----
+</details>
 
-### Verify (all clients)
+<details>
+<summary><strong>Setup — OpenCode</strong></summary>
 
-Ask your AI:
+OpenCode reads MCP configuration from `.opencode.json` in the project root. Copy the template and edit the path and token:
+
+```bash
+curl -o .opencode.json \
+  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.json
+```
+
+Then edit `.opencode.json`: set the absolute path to `mcp-server/index.js` and your API token. See **OpenCode** in the CLI Tools section above for the full setup walkthrough.
+
+</details>
+
+**Verify (all clients)** — ask your AI:
+
 > "List all my FieldTwin projects"
 
 The AI will call the MCP server and show you live results from your account.
 
 ---
 
-### Available tools (105)
+<details>
+<summary><strong>Available tools (105)</strong></summary>
 
 | Category | Tools |
 |---|---|
@@ -1050,9 +981,7 @@ The AI will call the MCP server and show you live results from your account.
 | **Tags** | `get_tags`, `get_tag`, `create_tag`, `update_tag`, `delete_tag` |
 | **Account** | `get_users`, `get_user`, `get_usage`, `get_account_logs`, `get_integrations` |
 
----
-
-### Example prompts
+**Example prompts:**
 
 ```
 "List all staged assets in subproject abc123"
@@ -1064,15 +993,83 @@ The AI will call the MCP server and show you live results from your account.
 "What assets are closest to coordinates 665000, 400000?"
 ```
 
----
+</details>
 
-### How the MCP server works internally
+<details>
+<summary><strong>How the MCP server works internally</strong></summary>
 
 The server runs as a local process via **stdio transport** — your MCP client spawns it automatically. There is no web server, no open port, and no network exposure beyond the calls it makes to the FieldTwin API. All credentials stay in your client's config file, which you should keep out of version control.
 
 ```
 AI Client  ──stdin/stdout──  mcp-server/index.js  ──HTTPS──  FieldTwin API
 ```
+
+</details>
+
+---
+
+## Scripts
+
+There are two scripts depending on your situation:
+
+| Script | When to use |
+|---|---|
+| `create` | Starting a new integration from scratch |
+| `install` | Adding the skill to a project that already exists |
+
+<details>
+<summary><strong>create — new integration from scratch</strong></summary>
+
+Run this script anywhere. It asks four questions and creates a complete, ready-to-run integration project — including the Hello World.
+
+**Linux / macOS:**
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.ps1" -OutFile create.ps1
+.\create.ps1
+```
+
+The script asks:
+1. **Integration name** — becomes the project folder name
+2. **Where to save** — Enter for current directory, or type any path
+3. **Hosting** — GitHub Pages, Localhost (`npm start`), or Decide later
+4. **AI tools** — which tools to configure (Claude Code, Copilot, Cursor, Cline, Aider, Antigravity CLI, OpenCode)
+
+What gets created: `index.html` (Hello World) · `fieldtwin.config.json` · `.gitignore` · `package.json` (if Localhost) · skill files for selected tools · optional git repo.
+
+</details>
+
+<details>
+<summary><strong>install — add the skill to an existing project</strong></summary>
+
+Run this script inside your existing integration project directory.
+
+**Linux / macOS:**
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.ps1" -OutFile install.ps1
+.\install.ps1
+```
+
+> **Windows note:** If PowerShell blocks the script, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once and retry.
+
+Covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider · Antigravity CLI · OpenCode**
+
+For each tool: shows what will be installed, asks for confirmation, warns before overwriting existing files.
+
+</details>
 
 ---
 
@@ -1085,41 +1082,32 @@ The Hello World is a single self-contained HTML file. When opened inside FieldTw
 - Logs every event received from FieldTwin in real time
 - Shows which items are currently selected in the 3D view
 
-**Built-in tabs:**
-
 | Tab | What it does |
 |---|---|
 | **Session** | Live session info and real-time event log |
 | **API Test** | Makes real REST API calls (Assets, Wells, Connections, Shapes, Metadata) and shows the raw JSON response |
-| **Troubleshoot** | Runs 8 automated checks (protocol, iFrame, loaded event, token, backendUrl, subProjectId, API readiness, live API ping) with a specific fix for each failure |
+| **Troubleshoot** | Runs 8 automated checks with a specific fix for each failure |
 
 **File:** `examples/hello-world/index.html`
 
 **How to run it:**
 
-Option A — Local server (fastest):
 ```bash
+# Option A — local server (fastest)
 npx serve examples/hello-world
-# Open http://localhost:3000 in FieldTwin as an integration
+# then open http://localhost:3000 in FieldTwin as an integration
 ```
 
-Option B — GitHub Pages:
-1. Push this repository to GitHub.
-2. Enable GitHub Pages (Settings → Pages → Deploy from `main`).
-3. Your Hello World URL: `https://YOUR_ORG.github.io/YOUR_REPO/examples/hello-world/`
+Option B — GitHub Pages: enable Pages in your repo settings, then use `https://YOUR_ORG.github.io/YOUR_REPO/examples/hello-world/`
 
-Option C — Any web server:
-Copy `index.html` to your server. The file is completely self-contained.
+Option C — Any web server: copy `index.html` to your server. The file is completely self-contained.
 
 **How to add it to FieldTwin:**
+
 1. Go to **Admin → Integrations → Create New Tab**
-2. Enter a name for your integration
-3. Add the URL (e.g. `http://localhost:5001` or your ngrok URL)
-4. Enable the following options:
-   - **Use Get Verb Instead of Post**
-   - **Do not pass arguments in URL for Get request**
-   - **Allow Access to Whole Project**
-5. Save and open the integration panel — you should see "Connected to FieldTwin!"
+2. Enter a name and the URL
+3. Enable: **Use Get Verb Instead of Post** · **Do not pass arguments in URL for Get request** · **Allow Access to Whole Project**
+4. Save — you should see "Connected to FieldTwin!"
 
 ![FieldTwin integration configuration](docs/images/fieldtwin-integration-config.png)
 
@@ -1159,8 +1147,6 @@ fieldtwin-ai-skill/
 ---
 
 ## Example Prompts
-
-Once the skill is active, try these with your AI assistant:
 
 **Getting started**
 > "Walk me through building my first FieldTwin integration."
