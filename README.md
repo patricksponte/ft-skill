@@ -503,51 +503,6 @@ The MCP server gives OpenCode direct access to your live FieldTwin data — no c
 
 ---
 
-**Using NVIDIA-hosted models (NIM):**
-
-NVIDIA NIM provides free access to Llama, DeepSeek, Qwen, Gemma, Mistral, and more via an OpenAI-compatible API. Add a `provider` block to your `.opencode.json`:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "instructions": ["fieldtwin-instructions.md", "api-reference.json"],
-  "model": "nvidia/deepseek-r1",
-  "provider": {
-    "nvidia": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "NVIDIA NIM",
-      "options": {
-        "baseURL": "https://integrate.api.nvidia.com/v1",
-        "apiKey": "nvapi-your-key-here",
-        "timeout": 600000
-      },
-      "models": {
-        "deepseek-r1": { "name": "DeepSeek R1", "tool_call": true },
-        "llama-3.3-70b-instruct": { "name": "Llama 3.3 70B", "tool_call": true },
-        "qwen2.5-coder-32b-instruct": { "name": "Qwen 2.5 Coder 32B", "tool_call": true },
-        "gemma-3n-e4b-it": { "name": "Gemma 3N", "tool_call": true }
-      }
-    }
-  },
-  "mcp": {
-    "fieldtwin": {
-      "type": "local",
-      "command": ["node", "/ABSOLUTE/PATH/TO/fieldtwin-ai-skill/mcp-server/index.js"],
-      "environment": {
-        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
-        "FIELDTWIN_API_TOKEN": "your-api-token-here"
-      }
-    }
-  }
-}
-```
-
-Get your free NVIDIA API key at [build.nvidia.com](https://build.nvidia.com). Change `model` to switch between any model in the `models` block — no other config changes needed.
-
-> **Tool calling requirement:** The MCP server requires the model to support tool calling. All models listed above support it. If you use a different model, verify it has tool call support before using the MCP server.
-
----
-
 ### Gemini Gems
 
 **Best file:** `platforms/copilot-instructions.md`
@@ -1039,11 +994,12 @@ The AI will call the MCP server and show you live results from your account.
 | **SubProjects** | `list_subprojects`, `get_subproject`, `create_subproject`, `update_subproject`, `delete_subproject`, `get_subproject_hierarchy`, `get_subproject_is_ready`, `get_subproject_share_url`, `get_subproject_tags` |
 | **Staged Assets** | `get_staged_assets`, `get_staged_asset`, `create_staged_asset`, `create_staged_assets_batch`, `update_staged_asset`, `delete_staged_asset` |
 | **Wells** | `get_wells`, `get_well`, `create_well`, `create_wells_batch`, `update_well`, `delete_well` |
-| **Well Bores** | `create_well_bore`, `update_well_bore`, `delete_well_bore`, `get_well_bore_segments`, `update_well_bore_segment`, `delete_well_bore_segment` |
+| **Well Bores** | `get_well_bores`, `get_well_bore`, `create_well_bore`, `update_well_bore`, `delete_well_bore`, `get_well_bore_segments`, `update_well_bore_segment`, `delete_well_bore_segment` |
 | **Connections** | `get_connections`, `get_connection`, `create_connection`, `create_connections_batch`, `update_connection`, `delete_connection` |
 | **Connection Segments** | `get_connection_segments`, `create_connection_segment`, `update_connection_segment`, `delete_connection_segment` |
 | **Shapes** | `get_shapes`, `get_shape`, `create_shape`, `create_shapes_batch`, `update_shape`, `delete_shape` |
 | **Overlays** | `get_overlays`, `get_overlay`, `create_overlay`, `create_overlays_batch`, `update_overlay` _(no delete — not available in API)_ |
+| **Frames** | `get_frames`, `get_frame`, `create_frame`, `update_frame`, `delete_frame` |
 | **Annotations** | `get_annotations`, `get_annotation`, `create_annotation`, `update_annotation`, `delete_annotation` |
 | **Layers** | `get_layers`, `get_layer`, `create_layer`, `update_layer`, `delete_layer` |
 | **Custom Costs** | `get_custom_costs`, `get_custom_cost`, `create_custom_cost`, `create_custom_costs_batch`, `update_custom_cost`, `delete_custom_cost` |
@@ -1143,10 +1099,12 @@ fieldtwin-ai-skill/
 │   ├── copilot-instructions.md       ← GitHub Copilot, Cline, JetBrains AI
 │   ├── antigravity.md                ← Antigravity CLI (copy to .antigravity.md)
 │   ├── gemini-cli.md                 ← Gemini CLI legacy (discontinued June 2026)
+│   ├── opencode.md                   ← OpenCode agent (copy to .opencode/agents/fieldtwin.md)
+│   ├── opencode.json                 ← OpenCode project config template (copy to .opencode.json)
 │   └── .cursorrules                  ← Cursor / Windsurf
 │
 ├── mcp-server/
-│   ├── index.js                      ← MCP server — 24 tools for direct FieldTwin API access
+│   ├── index.js                      ← MCP server — 105 tools for direct FieldTwin API access
 │   ├── package.json                  ← Node.js dependencies (@modelcontextprotocol/sdk, zod)
 │   └── .env.example                  ← Environment variable template
 │
