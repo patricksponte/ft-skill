@@ -1020,7 +1020,7 @@ There are two scripts depending on your situation:
 <details>
 <summary><strong>create — new integration from scratch</strong></summary>
 
-Run this script anywhere. It asks four questions and creates a complete, ready-to-run integration project — including the Hello World.
+Run this script anywhere on your machine. It asks four questions and creates a ready-to-run integration project in the folder of your choice.
 
 **Linux / macOS:**
 
@@ -1035,13 +1035,30 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/mai
 .\create.ps1
 ```
 
-The script asks:
-1. **Integration name** — becomes the project folder name
-2. **Where to save** — Enter for current directory, or type any path
-3. **Hosting** — GitHub Pages, Localhost (`npm start`), or Decide later
-4. **AI tools** — which tools to configure (Claude Code, Copilot, Cursor, Cline, Aider, Antigravity CLI, OpenCode)
+The script asks four questions:
 
-What gets created: `index.html` (Hello World) · `fieldtwin.config.json` · `.gitignore` · `package.json` (if Localhost) · agent files for selected tools · optional git repo.
+1. **Integration name** — becomes the project folder name
+2. **Where to save** — press Enter for the current directory, or type any path
+3. **Template** — choose the starting point for your project:
+   - **Static page** — a single HTML file, no server needed. Host for free on GitHub Pages.
+   - **Node.js** — adds an Express backend so you can use npm packages and external JS libraries.
+   - **Python** — adds a FastAPI backend so you can use pip packages and external Python libraries.
+4. **AI tools** — which tools to pre-configure (Claude Code, Copilot, Cursor, Cline, Aider, Antigravity CLI, OpenCode)
+
+The Hello World frontend is the same regardless of the template chosen. The backend (Node.js / Python) is where you add your own logic.
+
+**What gets created:**
+
+| File | Description |
+|---|---|
+| `index.html` | Hello World — open this in FieldTwin to confirm it works |
+| `fieldtwin.config.json` | Project metadata |
+| `.gitignore` | Ignores `node_modules/`, `.env`, `__pycache__/` |
+| `server.js` + `package.json` | Node.js only — run with `npm install && npm start` |
+| `app.py` + `requirements.txt` | Python only — run with `pip install -r requirements.txt && python app.py` |
+| Agent files | One file per selected AI tool, placed in the right location |
+
+**Prerequisites:** The script checks what is installed and tells you what to install if anything is missing — it never installs anything automatically.
 
 </details>
 
