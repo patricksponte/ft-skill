@@ -16,9 +16,9 @@
       }
     },
     "notes": [
-      "Use '-' as projectId in paths when the subProjectId is globally unique (common in integrations).",
       "Always wait for APIServerIsReady: true in the loaded event before making API calls.",
-      "Tokens from the loaded event are session-scoped and will expire when the session ends."
+      "Tokens from the loaded event are session-scoped and will expire when the session ends.",
+      "This reference was validated against the FieldTwin QA/Dev OpenAPI spec (api-qa.fieldtwin.com/oas3.json). Some endpoints may differ on production tenants."
     ]
   },
   "endpoints": [
@@ -47,21 +47,25 @@
       "note": "Staged assets are equipment, valves, manifolds, and other 3D objects placed in the subproject.",
       "endpoints": [
         { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAssets",                  "operationId": "GetStagedAssets",    "summary": "List all staged assets in a subproject", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAssets",                  "operationId": "AddStagedAssets",    "summary": "Create one or more staged assets", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAssets",                  "operationId": "PatchStagedAssets",  "summary": "Update multiple staged assets in one request", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAsset",                   "operationId": "AddStagedAsset",     "summary": "Create a single staged asset", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAssets/batch",            "operationId": "CreateStagedAssets", "summary": "Create multiple staged assets in a single request", "pathParams": ["projectId", "subProjectId"] },
         { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAsset/{stagedAssetId}",   "operationId": "GetStagedAsset",     "summary": "Get a single staged asset", "pathParams": ["projectId", "subProjectId", "stagedAssetId"] },
-        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAsset/{stagedAssetId}",   "operationId": "PatchStagedAssets",  "summary": "Update a staged asset", "pathParams": ["projectId", "subProjectId", "stagedAssetId"] },
+        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAsset/{stagedAssetId}",   "operationId": "PatchStagedAsset",   "summary": "Update a staged asset", "pathParams": ["projectId", "subProjectId", "stagedAssetId"] },
         { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/stagedAsset/{stagedAssetId}",   "operationId": "DeleteStagedAsset",  "summary": "Delete a staged asset", "pathParams": ["projectId", "subProjectId", "stagedAssetId"] }
       ],
       "bodySchema": {
         "POST": {
           "name": "string (required)",
-          "initialState": { "x": "number", "y": "number", "z": "number", "rotation": "number (degrees)" },
-          "stagedAssetSymbolId": "string — ID of the 3D symbol/model to use",
+          "asset": "string — ID of the 3D symbol/model to use (field name is 'asset', not 'stagedAssetSymbolId')",
+          "initialState": { "x": "number", "y": "number", "z": "number", "rotation": "number (degrees)", "scale": "number", "opacity": "number (0–1)" },
           "status": "enum: Planned | Installed | Removed",
           "visible": "boolean",
           "tags": "string[] — format: 'key::value'",
           "vendorAttributes": "object — custom data",
-          "projectTreeViewCustomPath": "string[] — folder path in project tree"
+          "projectTreeViewCustomPath": "string[] — folder path in project tree",
+          "description": "string",
+          "showMetaInfo": "boolean — show metadata billboard in 3D view"
         },
         "PATCH": {
           "name": "string",
@@ -76,11 +80,12 @@
     {
       "category": "Wells",
       "endpoints": [
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/wells",            "operationId": "GetWells",   "summary": "List all wells in a subproject", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/wells",            "operationId": "AddWells",   "summary": "Create one or more wells", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well/{wellId}",    "operationId": "GetWell",    "summary": "Get a single well", "pathParams": ["projectId", "subProjectId", "wellId"] },
-        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well/{wellId}",    "operationId": "PatchWell",  "summary": "Update a well", "pathParams": ["projectId", "subProjectId", "wellId"] },
-        { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well/{wellId}",    "operationId": "DeleteWell", "summary": "Delete a well", "pathParams": ["projectId", "subProjectId", "wellId"] }
+        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/wells",            "operationId": "GetWells",    "summary": "List all wells in a subproject", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well",             "operationId": "AddWell",     "summary": "Create a single well", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/wells/batch",      "operationId": "CreateWells", "summary": "Create multiple wells in a single request", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well/{wellId}",    "operationId": "GetWell",     "summary": "Get a single well", "pathParams": ["projectId", "subProjectId", "wellId"] },
+        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well/{wellId}",    "operationId": "PatchWell",   "summary": "Update a well", "pathParams": ["projectId", "subProjectId", "wellId"] },
+        { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/well/{wellId}",    "operationId": "DeleteWell",  "summary": "Delete a well", "pathParams": ["projectId", "subProjectId", "wellId"] }
       ],
       "bodySchema": {
         "POST": {
@@ -130,11 +135,12 @@
       "category": "Shapes",
       "note": "Shapes are zones, areas, and geometric overlays in the 3D view.",
       "endpoints": [
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shapes",            "operationId": "GetShapes",  "summary": "List all shapes in a subproject", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape",             "operationId": "AddShape",   "summary": "Create a shape", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape/{shapeId}",   "operationId": "GetShape",   "summary": "Get a single shape", "pathParams": ["projectId", "subProjectId", "shapeId"] },
-        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape/{shapeId}",   "operationId": "PatchShape", "summary": "Update a shape", "pathParams": ["projectId", "subProjectId", "shapeId"] },
-        { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape/{shapeId}",   "operationId": "DeleteShape","summary": "Delete a shape", "pathParams": ["projectId", "subProjectId", "shapeId"] }
+        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shapes",            "operationId": "GetShapes",    "summary": "List all shapes in a subproject", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape",             "operationId": "AddShape",     "summary": "Create a single shape", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shapes/batch",      "operationId": "CreateShapes", "summary": "Create multiple shapes in a single request", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape/{shapeId}",   "operationId": "GetShape",     "summary": "Get a single shape", "pathParams": ["projectId", "subProjectId", "shapeId"] },
+        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape/{shapeId}",   "operationId": "PatchShape",   "summary": "Update a shape", "pathParams": ["projectId", "subProjectId", "shapeId"] },
+        { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/shape/{shapeId}",   "operationId": "DeleteShape",  "summary": "Delete a shape", "pathParams": ["projectId", "subProjectId", "shapeId"] }
       ],
       "bodySchema": {
         "POST": {
@@ -151,12 +157,13 @@
       "category": "Overlays",
       "note": "Overlays are 2D labels and annotations rendered in the 3D scene.",
       "endpoints": [
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlays",              "operationId": "GetOverlays",  "summary": "List all overlays", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay",               "operationId": "AddOverlay",   "summary": "Create an overlay", "pathParams": ["projectId", "subProjectId"] },
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay/{overlayId}",   "operationId": "GetOverlay",   "summary": "Get a single overlay", "pathParams": ["projectId", "subProjectId", "overlayId"] },
-        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay/{overlayId}",   "operationId": "PatchOverlay", "summary": "Update an overlay", "pathParams": ["projectId", "subProjectId", "overlayId"] },
-        { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay/{overlayId}",   "operationId": "DeleteOverlay","summary": "Delete an overlay", "pathParams": ["projectId", "subProjectId", "overlayId"] }
+        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlays",              "operationId": "GetOverlays",    "summary": "List all overlays", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay",               "operationId": "AddOverlay",     "summary": "Create a single overlay", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlays/batch",        "operationId": "CreateOverlays", "summary": "Create multiple overlays in a single request", "pathParams": ["projectId", "subProjectId"] },
+        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay/{overlayId}",   "operationId": "GetOverlay",     "summary": "Get a single overlay", "pathParams": ["projectId", "subProjectId", "overlayId"] },
+        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/overlay/{overlayId}",   "operationId": "PatchOverlay",   "summary": "Update an overlay", "pathParams": ["projectId", "subProjectId", "overlayId"] }
       ],
+      "note": "Overlays are 2D labels and annotations rendered in the 3D scene. Note: DELETE overlay is not present in the v1.10 spec — use the batch endpoint or postMessage deleteResources instead."
       "bodySchema": {
         "POST": {
           "name": "string (required)",
@@ -191,29 +198,19 @@
     },
     {
       "category": "MetaData",
-      "note": "Custom metadata values attached to any resource (stagedAsset, well, connection, etc.).",
-      "endpoints": [
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/{resourceId}/metaData",                       "operationId": "GetMetaData",    "summary": "List metadata on a resource", "pathParams": ["projectId", "subProjectId", "resourceId"] },
-        { "method": "POST",   "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/{resourceId}/metaData",                       "operationId": "AddMetaData",    "summary": "Add metadata to a resource", "pathParams": ["projectId", "subProjectId", "resourceId"] },
-        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/{resourceId}/metaData/{metaDataId}",          "operationId": "PatchMetaData",  "summary": "Update a metadata value", "pathParams": ["projectId", "subProjectId", "resourceId", "metaDataId"] },
-        { "method": "DELETE", "path": "/API/v1.10/{projectId}/subProject/{subProjectId}/{resourceId}/metaData/{metaDataId}",          "operationId": "DeleteMetaData", "summary": "Delete a metadata value", "pathParams": ["projectId", "subProjectId", "resourceId", "metaDataId"] }
-      ],
-      "bodySchema": {
-        "POST": {
-          "metaDataDefinitionId": "string (required) — ID of the definition that describes this field",
-          "value": "any — the value to store (type depends on definition)"
-        }
-      }
+      "note": "Metadata values are embedded directly in resource GET responses under the 'metaData' field (array of objects with definitionId and value). The generic /{resourceId}/metaData sub-resource endpoint does NOT exist in the v1.10 spec. Read metadata by fetching the resource itself.",
+      "howToRead": "GET /stagedAsset/{id} → response.metaData → [{definitionId, value, ...}]",
+      "endpoints": []
     },
     {
       "category": "MetaDataDefinitions",
-      "note": "Schema definitions for metadata fields. Defines what custom fields exist and their types.",
+      "note": "Schema definitions for metadata fields — account-level, no projectId in path. Path uses all-lowercase 'metadatadefinitions'.",
       "endpoints": [
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/metaDataDefinitions",                                          "operationId": "GetMetaDataDefinitions",  "summary": "List all metadata definitions for a project", "pathParams": ["projectId"] },
-        { "method": "POST",   "path": "/API/v1.10/{projectId}/metaDataDefinition",                                           "operationId": "AddMetaDataDefinition",   "summary": "Create a metadata field definition", "pathParams": ["projectId"] },
-        { "method": "GET",    "path": "/API/v1.10/{projectId}/metaDataDefinition/{metaDataDefinitionId}",                    "operationId": "GetMetaDataDefinition",   "summary": "Get a single definition", "pathParams": ["projectId", "metaDataDefinitionId"] },
-        { "method": "PATCH",  "path": "/API/v1.10/{projectId}/metaDataDefinition/{metaDataDefinitionId}",                    "operationId": "PatchMetaDataDefinition", "summary": "Update a definition", "pathParams": ["projectId", "metaDataDefinitionId"] },
-        { "method": "DELETE", "path": "/API/v1.10/{projectId}/metaDataDefinition/{metaDataDefinitionId}",                    "operationId": "DeleteMetaDataDefinition","summary": "Delete a definition", "pathParams": ["projectId", "metaDataDefinitionId"] }
+        { "method": "GET",    "path": "/API/v1.10/metadatadefinitions",                                          "operationId": "GetMetaDataDefinitions",  "summary": "List all metadata definitions for the account" },
+        { "method": "POST",   "path": "/API/v1.10/metadatadefinition",                                           "operationId": "AddMetaDataDefinition",   "summary": "Create a metadata field definition" },
+        { "method": "GET",    "path": "/API/v1.10/metadatadefinition/{metaDataDefinitionId}",                    "operationId": "GetMetaDataDefinition",   "summary": "Get a single definition", "pathParams": ["metaDataDefinitionId"] },
+        { "method": "PATCH",  "path": "/API/v1.10/metadatadefinition/{metaDataDefinitionId}",                    "operationId": "PatchMetaDataDefinition", "summary": "Update a definition", "pathParams": ["metaDataDefinitionId"] },
+        { "method": "DELETE", "path": "/API/v1.10/metadatadefinition/{metaDataDefinitionId}",                    "operationId": "DeleteMetaDataDefinition","summary": "Delete a definition", "pathParams": ["metaDataDefinitionId"] }
       ]
     },
     {

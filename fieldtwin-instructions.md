@@ -417,7 +417,7 @@ window.parent.postMessage({
       attributes: {
         name: 'New Asset',
         initialState: { x: 665000, y: 400000, z: 0, rotation: 0 },
-        stagedAssetSymbolId: 'SYMBOL_ID'
+        asset: 'SYMBOL_ID'  // field is 'asset', not 'stagedAssetSymbolId'
       },
       projectTreeViewCustomPath: ['My Integration', 'Assets']
     }
@@ -452,11 +452,11 @@ window.parent.postMessage({
 ```javascript
 attributes: {
   name: 'Asset Name',
-  initialState: { x, y, z, rotation },  // rotation in degrees
-  status: 'Planned',                     // 'Planned' | 'Installed' | 'Removed'
+  asset: 'SYMBOL_ID',                              // 3D model/symbol ID
+  initialState: { x, y, z, rotation, scale, opacity },  // rotation in degrees
+  status: 'Planned',                               // 'Planned' | 'Installed' | 'Removed'
   visible: true,
   tags: ['type::valve', 'status::active'],
-  stagedAssetSymbolId: 'SYMBOL_ID',
   vendorAttributes: {},
   projectTreeViewCustomPath: ['Folder', 'Subfolder']
 }
@@ -622,7 +622,7 @@ const asset = await apiGet(session, `${BASE}/stagedAsset/${assetId}`);
 const newAsset = await apiPost(session, `${BASE}/stagedAssets`, {
   name: 'My Asset',
   initialState: { x: 665000, y: 400000, z: 0, rotation: 0 },
-  stagedAssetSymbolId: 'SYMBOL_ID',
+  asset: 'SYMBOL_ID',  // field is 'asset', not 'stagedAssetSymbolId'
   status: 'Planned',
   tags: ['type::valve']
 });
@@ -636,40 +636,39 @@ await apiPatch(session, `${BASE}/stagedAsset/${assetId}`, {
 // Delete a staged asset
 await apiDelete(session, `${BASE}/stagedAsset/${assetId}`);
 
-// Read metadata on a resource
-const meta = await apiGet(session, `${BASE}/${resourceId}/metaData`);
+// Get metadata definitions (account-level, no projectId in path)
+const defs = await apiGet(session, `/API/v1.10/metadatadefinitions`);
 
-// Get metadata definitions
-const defs = await apiGet(session, `/API/v1.10/${session.projectId}/metaDataDefinitions`);
+// Read metadata — it is embedded in the resource GET response, not a separate endpoint
+const asset = await apiGet(session, `${BASE}/stagedAsset/${assetId}`);
+const metaValues = asset.metaData;  // [{definitionId, value, ...}]
 ```
 
 ---
 
 ## Metadata (Custom Fields)
 
-Metadata definitions describe what custom fields exist and their types. Metadata values are the actual data stored on resources.
-
-> **Troubleshooting:** If `GET /{resourceId}/metaData` returns 404, the metadata may already be embedded in the resource itself under the `metaDataValue` array (each entry has a `definitionId` field). Some tenants do not expose the `/metaData` sub-resource separately — read it from the resource object instead.
+Metadata values are **embedded directly in the resource GET response** under the `metaData` field — there is no separate `/metaData` sub-resource endpoint in the v1.10 API. Definitions are at account level (no `projectId` in path).
 
 ```javascript
-// 1. Get definitions to know what fields are available
-const definitions = await apiGet(session, `/API/v1.10/${session.projectId}/metaDataDefinitions`);
+// 1. Get all metadata field definitions (account-level)
+const definitions = await apiGet(session, `/API/v1.10/metadatadefinitions`);
+// Returns: [{ id, name, fieldType, ... }, ...]
 
-// 2. Read metadata on a resource
-const resourceId = 'staged-asset-uuid';
-const metaValues = await apiGet(session, `${BASE}/${resourceId}/metaData`);
+// 2. Read metadata — fetch the resource, metadata is in the response
+const asset = await apiGet(session, `${BASE}/stagedAsset/${assetId}`);
+const metaValues = asset.metaData;
+// metaValues: [{ definitionId, value, ... }, ...]
 
-// 3. Add a metadata value to a resource
-await apiPost(session, `${BASE}/${resourceId}/metaData`, {
-  metaDataDefinitionId: 'definition-uuid',
-  value: 'my-value'
-});
-
-// 4. Update a metadata value
-await apiPatch(session, `${BASE}/${resourceId}/metaData/${metaDataId}`, {
-  value: 'updated-value'
-});
+// 3. Cross-reference definitions with values
+const defMap = Object.fromEntries(definitions.map(d => [d.id, d]));
+const fields = metaValues.map(v => ({
+  name:  defMap[v.definitionId]?.name || v.definitionId,
+  value: v.value
+}));
 ```
+
+> **Note:** If `metaData` is empty or missing on a resource, check `metaDataDefinitions` at the subProject level — some tenants scope definitions there instead of account-wide.
 
 ---
 
@@ -874,18 +873,23 @@ function registerFilters() {
 
 ### Template: Read and Display Metadata
 
+Metadata is embedded in the resource response — fetch the resource and read the `metaData` field.
+
 ```javascript
-async function showMetadata(session, resourceId) {
+async function showMetadata(session, resourceType, resourceId) {
+  // resourceType: 'stagedAsset' | 'well' | 'connection' | 'shape' | 'overlay'
   const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 
-  const [defs, values] = await Promise.all([
-    apiGet(session, `/API/v1.10/${session.projectId}/metaDataDefinitions`),
-    apiGet(session, `${BASE}/${resourceId}/metaData`)
+  const [defs, resource] = await Promise.all([
+    apiGet(session, `/API/v1.10/metadatadefinitions`),
+    apiGet(session, `${BASE}/${resourceType}/${resourceId}`)
   ]);
 
   const defMap = Object.fromEntries(defs.map(d => [d.id, d]));
-  return values.map(v => ({
-    label: defMap[v.metaDataDefinitionId]?.name || v.metaDataDefinitionId,
+  const metaValues = resource.metaData || [];
+
+  return metaValues.map(v => ({
+    label: defMap[v.definitionId]?.name || v.definitionId,
     value: v.value
   }));
 }
@@ -915,7 +919,7 @@ async function showMetadata(session, resourceId) {
 2. Confirm `subProjectId` is correct (comes from `msg.subProject`, not `msg.subProjectId`).
 3. Check that `session.projectId` is set (from `msg.project` in the `loaded` event) and used in the API path.
 4. Verify the API version in the path matches (`v1.10`).
-5. If `GET /{resourceId}/metaData` returns 404, the metadata may not be a separate sub-resource on this tenant — check if it comes embedded in the resource object under `metaDataValue` (each entry has a `definitionId` field).
+5. Metadata does not have its own endpoint — it is embedded in the resource GET response under the `metaData` field. Definitions are at `GET /API/v1.10/metadatadefinitions` (account-level, no projectId, all lowercase).
 
 ### Toast / messages sent but nothing happens
 
@@ -949,18 +953,22 @@ window.addEventListener('message', function(event) {
 
 All endpoints are in `api-reference.json`. The most common paths for integrations:
 
-| Resource | List | Get One | Create | Update | Delete |
-|---|---|---|---|---|---|
-| stagedAssets | `GET /stagedAssets` | `GET /stagedAsset/{id}` | `POST /stagedAssets` | `PATCH /stagedAsset/{id}` | `DELETE /stagedAsset/{id}` |
-| wells | `GET /wells` | `GET /well/{id}` | `POST /wells` | `PATCH /well/{id}` | `DELETE /well/{id}` |
-| connections | `GET /connections` | `GET /connection/{id}` | `POST /connection` | `PATCH /connection/{id}` | `DELETE /connection/{id}` |
-| shapes | `GET /shapes` | `GET /shape/{id}` | `POST /shape` | `PATCH /shape/{id}` | `DELETE /shape/{id}` |
-| overlays | `GET /overlays` | `GET /overlay/{id}` | `POST /overlay` | `PATCH /overlay/{id}` | `DELETE /overlay/{id}` |
-| frames | `GET /frames` | `GET /frame/{id}` | `POST /frame` | `PATCH /frame/{id}` | `DELETE /frame/{id}` |
-| annotations | `GET /annotations` | `GET /annotations/{id}` | `POST /annotations` | `PATCH /annotations/{id}` | `DELETE /annotations/{id}` |
-| metaData | `GET /{resourceId}/metaData` | — | `POST /{resourceId}/metaData` | `PATCH /{resourceId}/metaData/{id}` | `DELETE /{resourceId}/metaData/{id}` |
+| Resource | List | Get One | Create (singular) | Batch Create | Update | Delete |
+|---|---|---|---|---|---|---|
+| stagedAssets | `GET /stagedAssets` | `GET /stagedAsset/{id}` | `POST /stagedAsset` | `POST /stagedAssets/batch` | `PATCH /stagedAsset/{id}` | `DELETE /stagedAsset/{id}` |
+| wells | `GET /wells` | `GET /well/{id}` | `POST /well` | `POST /wells/batch` | `PATCH /well/{id}` | `DELETE /well/{id}` |
+| connections | `GET /connections` | `GET /connection/{id}` | `POST /connection` | `POST /connections/batch` | `PATCH /connection/{id}` | `DELETE /connection/{id}` |
+| shapes | `GET /shapes` | `GET /shape/{id}` | `POST /shape` | `POST /shapes/batch` | `PATCH /shape/{id}` | `DELETE /shape/{id}` |
+| overlays | `GET /overlays` | `GET /overlay/{id}` | `POST /overlay` | `POST /overlays/batch` | `PATCH /overlay/{id}` | — ¹ |
+| frames | `GET /frames` | `GET /frame/{id}` | `POST /frame` | — | `PATCH /frame/{id}` | `DELETE /frame/{id}` |
+| annotations | `GET /annotations` | `GET /annotations/{id}` | `POST /annotations` | — | `PATCH /annotations/{id}` | `DELETE /annotations/{id}` |
 
-All paths above are relative to: `{backendUrl}/API/v1.10/{projectId}/subProject/{subProjectId}/`
+¹ DELETE overlay not present in v1.10 spec — use `postMessage deleteResources` instead.
+
+**Metadata** is not a separate endpoint. It is embedded in the resource GET response under the `metaData` field.
+**Definitions** are account-level: `GET /API/v1.10/metadatadefinitions` (no projectId, all lowercase).
+
+All subproject-scoped paths above are relative to: `{backendUrl}/API/v1.10/{projectId}/subProject/{subProjectId}/`
 
 Full API spec: https://api.fieldtwin.com | OpenAPI JSON: https://api-qa.fieldtwin.com/oas3.json
 
@@ -988,5 +996,6 @@ Full API spec: https://api.fieldtwin.com | OpenAPI JSON: https://api-qa.fieldtwi
 | Query resources by tag | Send: `getResourcesByTags` |
 | Get visible resources | Send: `getVisibleResources` |
 | List assets via API | `GET /API/v1.10/{projectId}/subProject/{id}/stagedAssets` |
-| Create asset via API | `POST /API/v1.10/{projectId}/subProject/{id}/stagedAssets` |
-| Read metadata | `GET /API/v1.10/{projectId}/subProject/{id}/{resourceId}/metaData` |
+| Create asset via API | `POST /API/v1.10/{projectId}/subProject/{id}/stagedAsset` |
+| Read metadata | Embedded in resource GET response under `metaData` field |
+| Get metadata definitions | `GET /API/v1.10/metadatadefinitions` (account-level, no projectId) |
