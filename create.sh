@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# FieldTwin AI Skill — Integration Creator (Linux / macOS)
+# FieldTwin AI Agent Toolkit — Integration Creator (Linux / macOS)
 # Creates a new FieldTwin integration project from scratch,
-# with the AI skill pre-configured and the Hello World ready to run.
+# with the AI Agent Toolkit pre-configured and the Hello World ready to run.
 
 REPO_BASE="https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main"
 
@@ -40,7 +40,7 @@ separator() { echo -e "${DIM}  ────────────────�
 # ── Header ────────────────────────────────────────────────────────────────────
 
 echo ""
-echo -e "${BOLD}  FieldTwin AI Skill — Integration Creator${NC}"
+echo -e "${BOLD}  FieldTwin AI Agent Toolkit — Integration Creator${NC}"
 separator
 echo "  Creates a new FieldTwin integration project on your machine."
 echo "  The Hello World will be ready to open in FieldTwin immediately."
@@ -129,7 +129,7 @@ echo ""
 
 echo -e "${BOLD}  Step 4 — AI tools${NC}"
 echo ""
-echo "  Which AI tools do you use? Skill files will be placed"
+echo "  Which AI tools do you use? agent files will be placed"
 echo "  in the right location for each one."
 echo ""
 
@@ -190,17 +190,17 @@ case "$TEMPLATE" in
     ;;
 esac
 
-# ── AI skill files ────────────────────────────────────────────────────────────
+# ── AI Agent Toolkit files ────────────────────────────────────────────────────────────
 
 if [[ ${#AI_TOOLS[@]} -gt 0 ]]; then
   echo ""
-  echo -e "  ${DIM}AI skill files:${NC}"
+  echo -e "  ${DIM}AI Agent Toolkit files:${NC}"
   echo ""
 
   for tool in "${AI_TOOLS[@]}"; do
     case "$tool" in
       claude-code)
-        download "platforms/claude-code-skill.md"  "$PROJECT_DIR/.claude/skills/fieldtwin.md" \
+        download "platforms/claude-code.md"  "$PROJECT_DIR/.claude/skills/fieldtwin.md" \
         && download "fieldtwin-instructions.md"    "$PROJECT_DIR/.claude/fieldtwin-instructions.md" \
         && download "api-reference.json"           "$PROJECT_DIR/.claude/api-reference.json" \
         && echo -e "  ${GREEN}✓${NC} Claude Code  (.claude/)"

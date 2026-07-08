@@ -1,8 +1,8 @@
-# FieldTwin AI Skill
+# FieldTwin AI Agent Toolkit
 
 Teach any AI assistant to help you build FieldTwin integrations — in minutes.
 
-This skill gives your AI assistant complete knowledge of the FieldTwin integration API (v1.10): how to communicate with the platform, how to create and manage resources, how to handle user interactions, and more.
+This toolkit gives your AI assistant complete knowledge of the FieldTwin integration API (v1.10): how to communicate with the platform, how to create and manage resources, how to handle user interactions, and more.
 
 ---
 
@@ -21,7 +21,7 @@ This skill gives your AI assistant complete knowledge of the FieldTwin integrati
 
 ## Quick Start (5 minutes)
 
-1. **Pick your platform below** and add the skill — takes 2 minutes
+1. **Pick your platform below** and add the toolkit — takes 2 minutes
 2. **Open the Hello World** (`examples/hello-world/index.html`) in FieldTwin as an integration — you should see "Connected!"
 3. **Ask your AI:** `"I want to build a FieldTwin integration that shows a list of all assets in the current subproject."`
 
@@ -156,10 +156,10 @@ GitHub Copilot automatically reads `.github/copilot-instructions.md` from the ro
 2. Commit and push:
    ```bash
    git add .github/copilot-instructions.md
-   git commit -m "Add FieldTwin AI skill for GitHub Copilot"
+   git commit -m "Add FieldTwin AI Agent Toolkit for GitHub Copilot"
    git push
    ```
-3. The skill is now active for **everyone** working on that repository — no per-user setup needed.
+3. The agent toolkit is now active for **everyone** working on that repository — no per-user setup needed.
 
 > For the VS Code Copilot Chat panel, you can also open the command palette → **GitHub Copilot: Edit Settings** and point to the file manually.
 
@@ -250,9 +250,9 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
 
 1. Open **Settings → Tools → AI Assistant → Prompt Library**.
 2. Click **+** to create a new prompt.
-3. Name it `FieldTwin Skill` and paste the contents of `platforms/copilot-instructions.md`.
+3. Name it `FieldTwin Agent` and paste the contents of `platforms/copilot-instructions.md`.
 4. Save the prompt.
-5. In the AI chat panel, type `/FieldTwin Skill` at the start of a conversation to activate it.
+5. In the AI chat panel, type `/FieldTwin Agent` at the start of a conversation to activate it.
 
 > **Alternative:** For a per-project setup, some versions of JetBrains AI Assistant read `.jb-ai-instructions.md` from the project root — paste the contents of `platforms/copilot-instructions.md` into that file.
 
@@ -268,19 +268,19 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
 **Best file:** `fieldtwin-instructions.md` + `api-reference.json`
 
 1. Clone or download this repository.
-2. Copy the skill file to your integration project:
+2. Copy the agent file to your integration project:
    ```bash
    mkdir -p .claude/skills
-   cp /path/to/fieldtwin-ai-skill/platforms/claude-code-skill.md .claude/skills/fieldtwin.md
+   cp /path/to/fieldtwin-ai-agent-toolkit/platforms/claude-code.md .claude/skills/fieldtwin.md
    ```
 3. Copy the full reference for inline access:
    ```bash
-   cp /path/to/fieldtwin-ai-skill/fieldtwin-instructions.md .claude/
-   cp /path/to/fieldtwin-ai-skill/api-reference.json .claude/
+   cp /path/to/fieldtwin-ai-agent-toolkit/fieldtwin-instructions.md .claude/
+   cp /path/to/fieldtwin-ai-agent-toolkit/api-reference.json .claude/
    ```
-4. In Claude Code, type `/fieldtwin` to activate the skill in any conversation.
+4. In Claude Code, type `/fieldtwin` to activate the toolkit in any conversation.
 
-> The skill file registers `/fieldtwin` as a slash command. Once activated, Claude Code will use `fieldtwin-instructions.md` and `api-reference.json` as its reference for the entire conversation.
+> The agent file registers `/fieldtwin` as a slash command. Once activated, Claude Code will use `fieldtwin-instructions.md` and `api-reference.json` as its reference for the entire conversation.
 
 </details>
 
@@ -291,7 +291,7 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
 
 [Antigravity CLI](https://antigravity.google) (`agy`) is Google's terminal-based AI coding agent and the official replacement for Gemini CLI (discontinued June 18, 2026). It reads `.antigravity.md` from the current project directory automatically — the same pattern as Claude Code's `CLAUDE.md`.
 
-> **Gemini CLI users:** Gemini CLI stopped serving requests on June 18, 2026 for all free, Pro, and Ultra users. Migrate by installing Antigravity CLI and copying `.antigravity.md` instead of `GEMINI.md`. The skill content is identical.
+> **Gemini CLI users:** Gemini CLI stopped serving requests on June 18, 2026 for all free, Pro, and Ultra users. Migrate by installing Antigravity CLI and copying `.antigravity.md` instead of `GEMINI.md`. The agent content is identical.
 
 1. Install Antigravity CLI:
    ```bash
@@ -300,7 +300,7 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
    # macOS (Homebrew)
    brew install --cask antigravity-cli
    ```
-2. Copy the skill file to your integration project:
+2. Copy the agent file to your integration project:
    ```bash
    curl -o .antigravity.md \
      https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/antigravity.md
@@ -312,9 +312,9 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
    curl -o api-reference.json \
      https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-reference.json
    ```
-4. Run `agy` in your project folder — the skill is active automatically.
+4. Run `agy` in your project folder — the toolkit is active automatically.
 
-> `.antigravity.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the skill automatically. `GEMINI.md` also works as a backward-compatible fallback.
+> `.antigravity.md` is loaded as context for every session in that directory. You can commit it to your repository so the whole team gets the toolkit automatically. `GEMINI.md` also works as a backward-compatible fallback.
 
 </details>
 
@@ -353,9 +353,9 @@ aider --system-prompt "$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR
 
 **Best file:** `fieldtwin-instructions.md` + MCP server
 
-[OpenCode](https://opencode.ai) is an open-source terminal-based AI coding agent from the SST team. Its biggest advantage for FieldTwin users is **model flexibility**: you can use Claude, GPT-4o, Gemini, or any model hosted by NVIDIA NIM (Llama, DeepSeek, Qwen, Gemma, Mistral, and more) — all with the same skill file and MCP server. Switch models without changing anything in the skill.
+[OpenCode](https://opencode.ai) is an open-source terminal-based AI coding agent from the SST team. Its biggest advantage for FieldTwin users is **model flexibility**: you can use Claude, GPT-4o, Gemini, or any model hosted by NVIDIA NIM (Llama, DeepSeek, Qwen, Gemma, Mistral, and more) — all with the same agent file and MCP server. Switch models without changing anything in the agent context.
 
-**Option A — Skill only (instructions always active):**
+**Option A — Agent context only (instructions always active):**
 
 1. Install OpenCode:
    ```bash
@@ -373,7 +373,7 @@ aider --system-prompt "$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR
      "instructions": ["fieldtwin-instructions.md"]
    }
    ```
-4. Run `opencode` in your project folder — the skill is active for every session.
+4. Run `opencode` in your project folder — the toolkit is active for every session.
 
 ---
 
@@ -393,7 +393,7 @@ Switch to the agent inside OpenCode with the `/fieldtwin` command in the prompt.
 
 ---
 
-**Option C — Full setup (skill + MCP server):**
+**Option C — Full setup (agent context + MCP server):**
 
 The MCP server gives OpenCode direct access to your live FieldTwin data — no code generation required.
 
@@ -403,16 +403,16 @@ The MCP server gives OpenCode direct access to your live FieldTwin data — no c
      https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.json
    ```
 2. Edit `.opencode.json` and replace:
-   - `/ABSOLUTE/PATH/TO/fieldtwin-ai-skill/mcp-server/index.js` — absolute path on your machine
+   - `/ABSOLUTE/PATH/TO/fieldtwin-ai-agent-toolkit/mcp-server/index.js` — absolute path on your machine
    - `your-api-token-here` — your FieldTwin API Token (Settings → API Tokens)
    - `FIELDTWIN_BACKEND_URL` — your FieldTwin backend URL
 3. Install MCP server dependencies (once):
    ```bash
-   cd /path/to/fieldtwin-ai-skill/mcp-server && npm install
+   cd /path/to/fieldtwin-ai-agent-toolkit/mcp-server && npm install
    ```
 4. Run `opencode` — the FieldTwin tools are available to any model you choose.
 
-> The `instructions` field and the `mcp` block can coexist in the same `.opencode.json`. Use both together for the best experience: the skill teaches the model FieldTwin patterns, and the MCP server lets it act on your live data.
+> The `instructions` field and the `mcp` block can coexist in the same `.opencode.json`. Use both together for the best experience: the agent toolkit teaches the model FieldTwin patterns, and the MCP server lets it act on your live data.
 
 </details>
 
@@ -431,7 +431,7 @@ Claude.ai Projects let you define a persistent system prompt and attach files th
 2. Name it `FieldTwin Development`.
 3. Under **Project Instructions**, paste the contents of `fieldtwin-instructions.md`.
 4. Under **Project Knowledge**, upload `api-reference.json`.
-5. Every new conversation in this project will have the skill active automatically.
+5. Every new conversation in this project will have the toolkit active automatically.
 
 > **Context window tip:** Claude supports large context windows, so you can paste the full `fieldtwin-instructions.md` without truncating it.
 
@@ -450,7 +450,7 @@ Claude.ai Projects let you define a persistent system prompt and attach files th
 
 > **No Custom GPT plan?** Start any conversation with:
 > ```
-> I'm sharing instructions for a FieldTwin integration skill. Please follow them for this conversation:
+> I'm sharing instructions for a FieldTwin integration agent. Please follow them for this conversation:
 >
 > [paste contents of api-quick-reference.md]
 > ```
@@ -468,7 +468,7 @@ ChatGPT Projects (available on Plus/Pro) let you define custom instructions scop
 2. Click the project name → **Customize** → **Instructions**.
 3. Paste the contents of `fieldtwin-instructions.md`.
 4. Upload `api-reference.json` as a project file (click the paperclip icon in the project sidebar).
-5. All chats in this project will have the skill active.
+5. All chats in this project will have the toolkit active.
 
 </details>
 
@@ -496,7 +496,7 @@ Google AI Studio lets you create prompts with a persistent system instruction an
 1. Go to [aistudio.google.com](https://aistudio.google.com) → **Create new prompt**.
 2. In the **System instructions** field, paste the contents of `fieldtwin-instructions.md`.
 3. Upload `api-reference.json` as a file attachment (click the paperclip icon).
-4. Save as a **Saved prompt** named `FieldTwin Skill`.
+4. Save as a **Saved prompt** named `FieldTwin Agent`.
 5. Use this prompt as your starting point for all FieldTwin work.
 
 > AI Studio also supports sharing prompts via URL — share yours with your team to give everyone the same starting point.
@@ -608,13 +608,13 @@ curl http://localhost:11434/api/chat -d '{
 1. Install [LM Studio](https://lmstudio.ai) and download a model (recommended: `Qwen2.5-Coder-32B-Instruct`).
 2. In the **Chat** tab, click the **System Prompt** field at the top.
 3. Paste the contents of `fieldtwin-instructions.md` (or `api-quick-reference.md` for smaller models).
-4. Start chatting — the skill is active for this session.
+4. Start chatting — the toolkit is active for this session.
 
 **For persistent setup:**
 
 1. Go to **My Models → Edit Preset** for your chosen model.
 2. In **System Prompt**, paste the instructions.
-3. Save the preset. The skill will be loaded every time you use that preset.
+3. Save the preset. The toolkit will be loaded every time you use that preset.
 
 **LM Studio local server (OpenAI-compatible API):**
 
@@ -648,7 +648,7 @@ Any local model you load in LM Studio (Llama 3, DeepSeek, Qwen, Gemma, Mistral, 
 1. Install Jan.ai and download a model from the Hub (recommended: `Qwen2.5-Coder-7B-Instruct` or `Codestral-22B`).
 2. Go to **Settings → My Models → [your model] → Edit**.
 3. In the **System Prompt** field, paste the contents of `api-quick-reference.md`.
-4. Save — the skill is now active every time you use that model in Jan.
+4. Save — the toolkit is now active every time you use that model in Jan.
 
 **Jan API (OpenAI-compatible):**
 
@@ -671,7 +671,7 @@ curl http://localhost:1337/v1/chat/completions \
 
 **Best file:** `fieldtwin-instructions.md` + `api-reference.json`
 
-[AnythingLLM](https://anythingllm.com) supports workspaces with custom system prompts and document ingestion — ideal for this skill.
+[AnythingLLM](https://anythingllm.com) supports workspaces with custom system prompts and document ingestion — ideal for this toolkit.
 
 1. Install AnythingLLM (Desktop or Docker) and connect it to Ollama, LM Studio, or any OpenAI-compatible backend.
 2. Create a **New Workspace** named `FieldTwin`.
@@ -737,7 +737,7 @@ Edit `~/.continue/config.json`:
 }
 ```
 
-Restart VS Code after saving. The skill-enabled model will appear in the Continue.dev model picker.
+Restart VS Code after saving. The toolkit-enabled model will appear in the Continue.dev model picker.
 
 </details>
 
@@ -748,9 +748,9 @@ Restart VS Code after saving. The skill-enabled model will appear in the Continu
 The MCP (Model Context Protocol) server gives any compatible AI client **direct access to your FieldTwin data** — no code generation required. Instead of asking the AI to write API calls for you to run, it can execute them directly and show you live results in the conversation.
 
 <details>
-<summary><strong>Skill vs MCP Server — which one do I need?</strong></summary>
+<summary><strong>Agent Toolkit vs MCP Server — which one do I need?</strong></summary>
 
-| | Skill | MCP Server |
+| | Agent Toolkit | MCP Server |
 |---|---|---|
 | **What it does** | Teaches the AI how to write FieldTwin integration code | Gives the AI tools to call the FieldTwin API directly |
 | **Who runs the code** | You (AI writes it, you run it) | The AI (executes API calls autonomously) |
@@ -759,7 +759,7 @@ The MCP (Model Context Protocol) server gives any compatible AI client **direct 
 | **Requires** | Any AI assistant | A MCP-compatible client + Node.js + FieldTwin API Token |
 | **Works offline** | Yes (just instructions) | No (makes real API calls) |
 
-**Use the Skill when you want code.** Use the MCP server when you want the AI to query or act on your live FieldTwin data directly. Both can be active at the same time — they complement each other.
+**Use the Agent Toolkit when you want code.** Use the MCP server when you want the AI to query or act on your live FieldTwin data directly. Both can be active at the same time — they complement each other.
 
 </details>
 
@@ -800,7 +800,7 @@ Create or edit `.claude/settings.json` in your project directory. For a global s
   "mcpServers": {
     "fieldtwin": {
       "command": "node",
-      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "args": ["/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js"],
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
@@ -811,7 +811,7 @@ Create or edit `.claude/settings.json` in your project directory. For a global s
 }
 ```
 
-Replace `/absolute/path/to/fieldtwin-ai-skill` with the actual path on your machine. Restart Claude Code after saving.
+Replace `/absolute/path/to/fieldtwin-ai-agent-toolkit` with the actual path on your machine. Restart Claude Code after saving.
 
 </details>
 
@@ -825,7 +825,7 @@ Cursor reads MCP servers from `~/.cursor/mcp.json` (global) or `.cursor/mcp.json
   "mcpServers": {
     "fieldtwin": {
       "command": "node",
-      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "args": ["/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js"],
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
@@ -850,7 +850,7 @@ LM Studio 0.3.5+ supports MCP natively.
 3. Fill in:
    - **Name:** `fieldtwin`
    - **Command:** `node`
-   - **Args:** `/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js`
+   - **Args:** `/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js`
    - **Environment variables:** `FIELDTWIN_BACKEND_URL`, `FIELDTWIN_API_TOKEN`, `FIELDTWIN_SUBPROJECT_ID`
 4. Click **Save**. The server starts automatically when you open a chat.
 
@@ -866,7 +866,7 @@ Create `.agents/mcp_config.json` in your project root for a workspace-specific s
   "mcpServers": {
     "fieldtwin": {
       "command": "node",
-      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "args": ["/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js"],
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
@@ -893,7 +893,7 @@ Run `agy` in your project folder. Type `/mcp` inside the session to verify the `
   "mcpServers": {
     "fieldtwin": {
       "command": "node",
-      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "args": ["/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js"],
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
@@ -920,7 +920,7 @@ Edit `~/.continue/config.json` and add an `mcpServers` block:
     {
       "name": "fieldtwin",
       "command": "node",
-      "args": ["/absolute/path/to/fieldtwin-ai-skill/mcp-server/index.js"],
+      "args": ["/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js"],
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
@@ -1015,7 +1015,7 @@ There are two scripts depending on your situation:
 | Script | When to use |
 |---|---|
 | `create` | Starting a new integration from scratch |
-| `install` | Adding the skill to a project that already exists |
+| `install` | Adding the agent toolkit to a project that already exists |
 
 <details>
 <summary><strong>create — new integration from scratch</strong></summary>
@@ -1041,12 +1041,12 @@ The script asks:
 3. **Hosting** — GitHub Pages, Localhost (`npm start`), or Decide later
 4. **AI tools** — which tools to configure (Claude Code, Copilot, Cursor, Cline, Aider, Antigravity CLI, OpenCode)
 
-What gets created: `index.html` (Hello World) · `fieldtwin.config.json` · `.gitignore` · `package.json` (if Localhost) · skill files for selected tools · optional git repo.
+What gets created: `index.html` (Hello World) · `fieldtwin.config.json` · `.gitignore` · `package.json` (if Localhost) · agent files for selected tools · optional git repo.
 
 </details>
 
 <details>
-<summary><strong>install — add the skill to an existing project</strong></summary>
+<summary><strong>install — add the toolkit to an existing project</strong></summary>
 
 Run this script inside your existing integration project directory.
 
@@ -1078,7 +1078,7 @@ For each tool: shows what will be installed, asks for confirmation, warns before
 The Hello World is a single self-contained HTML file. When opened inside FieldTwin as an integration, it:
 
 - Connects to FieldTwin and displays your session info (SubProject ID, Backend URL, Tab ID, API readiness)
-- Sends a success toast notification: "Hello from FieldTwin AI Skill!"
+- Sends a success toast notification: "Hello from FieldTwin AI Agent Toolkit!"
 - Logs every event received from FieldTwin in real time
 - Shows which items are currently selected in the 3D view
 
@@ -1116,17 +1116,17 @@ Option C — Any web server: copy `index.html` to your server. The file is compl
 ## Repository Structure
 
 ```
-fieldtwin-ai-skill/
+fieldtwin-ai-agent-toolkit/
 │
 ├── README.md                         ← You are here
-├── fieldtwin-instructions.md         ← Full skill reference — large context models
+├── fieldtwin-instructions.md         ← Full agent reference — large context models
 ├── api-reference.json                ← All 120+ REST endpoints (v1.10), structured JSON
 ├── api-quick-reference.md            ← Compact reference — token-limited models
 ├── create.sh / create.ps1            ← Create a new integration project from scratch
-├── install.sh / install.ps1          ← Add the skill to an existing project
+├── install.sh / install.ps1          ← Add the agent toolkit to an existing project
 │
 ├── platforms/
-│   ├── claude-code-skill.md          ← Claude Code /fieldtwin skill
+│   ├── claude-code.md          ← Claude Code /fieldtwin command
 │   ├── copilot-instructions.md       ← GitHub Copilot, Cline, JetBrains AI
 │   ├── antigravity.md                ← Antigravity CLI (copy to .antigravity.md)
 │   ├── gemini-cli.md                 ← Gemini CLI legacy (discontinued June 2026)

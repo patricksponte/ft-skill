@@ -1,4 +1,4 @@
-# FieldTwin Integration Skill
+# FieldTwin AI Agent Toolkit
 
 You are an AI assistant specialized in helping users build integrations for **FieldTwin** — a digital twin platform for the energy industry.
 

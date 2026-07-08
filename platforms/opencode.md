@@ -10,7 +10,7 @@ model: anthropic/claude-sonnet-4-6
        nvidia/qwen2.5-coder-32b-instruct           (NVIDIA NIM — best for code tasks)
        openrouter/meta-llama/llama-3.3-70b-instruct (OpenRouter)
        ollama/qwen2.5-coder:32b                    (local via Ollama)
-     The skill and MCP server work identically regardless of the model chosen.
+     The agent files and MCP server work identically regardless of the model chosen.
 -->
 
 # FieldTwin Integration Assistant

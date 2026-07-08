@@ -1,10 +1,10 @@
-# FieldTwin Integration Skill
+# FieldTwin AI Agent Toolkit
 
-Use this skill when the user is building, debugging, or asking questions about a FieldTwin integration.
+Use this agent toolkit when the user is building, debugging, or asking questions about a FieldTwin integration.
 
 A FieldTwin integration is a web application (iFrame) embedded inside the FieldTwin digital twin platform. It communicates with FieldTwin using `window.postMessage`. The complete reference is in `fieldtwin-instructions.md`. The full API endpoint list is in `api-reference.json`.
 
-## When to Use This Skill
+## When to Use This Agent Toolkit
 
 - User mentions FieldTwin, digital twin, subsea assets, or offshore project integrations
 - User is working with `window.postMessage` in a FieldTwin context

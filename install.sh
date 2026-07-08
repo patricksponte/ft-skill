@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# FieldTwin AI Skill — Project Installer (Linux / macOS)
-# Downloads skill files from GitHub and places them in the correct locations
+# FieldTwin AI Agent Toolkit — Project Installer (Linux / macOS)
+# Downloads agent files from GitHub and places them in the correct locations
 # for each AI coding tool you use in this project.
 
 REPO_BASE="https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main"
@@ -53,11 +53,11 @@ separator() { echo -e "${DIM}  ────────────────�
 # ── Header ────────────────────────────────────────────────────────────────────
 
 echo ""
-echo -e "${BOLD}  FieldTwin AI Skill — Project Installer${NC}"
+echo -e "${BOLD}  FieldTwin AI Agent Toolkit — Project Installer${NC}"
 separator
 echo -e "  Installing into: ${CYAN}$(pwd)${NC}"
 echo ""
-echo "  This script downloads the FieldTwin AI Skill from GitHub"
+echo "  This script downloads the FieldTwin AI Agent Toolkit from GitHub"
 echo "  and sets it up for the AI tools you use in this project."
 echo "  You will be asked before anything is written to disk."
 separator
@@ -72,17 +72,17 @@ echo "  the full API reference where the command can read it."
 echo ""
 echo -e "  ${DIM}Files that will be created:${NC}"
 echo "    .claude/skills/fieldtwin.md        ← /fieldtwin slash command"
-echo "    .claude/fieldtwin-instructions.md  ← complete skill reference"
+echo "    .claude/fieldtwin-instructions.md  ← complete agent reference"
 echo "    .claude/api-reference.json         ← all 120+ REST endpoints"
 echo ""
 if ask "Set up for Claude Code?"; then
   ok=true
   guard ".claude/skills/fieldtwin.md"       || ok=false
-  $ok && download "platforms/claude-code-skill.md" ".claude/skills/fieldtwin.md"    || ok=false
+  $ok && download "platforms/claude-code.md" ".claude/skills/fieldtwin.md"    || ok=false
   $ok && download "fieldtwin-instructions.md"      ".claude/fieldtwin-instructions.md" || ok=false
   $ok && download "api-reference.json"             ".claude/api-reference.json"        || ok=false
   if $ok; then
-    echo -e "  ${GREEN}✓ Done. Type /fieldtwin in Claude Code to activate the skill.${NC}"
+    echo -e "  ${GREEN}✓ Done. Type /fieldtwin in Claude Code to activate the toolkit.${NC}"
     installed+=("Claude Code")
   fi
 else
@@ -96,7 +96,7 @@ echo ""
 echo -e "${BOLD}  [2/7] GitHub Copilot${NC}"
 echo ""
 echo "  Adds .github/copilot-instructions.md so Copilot reads the FieldTwin"
-echo "  skill automatically for everyone working on this repository."
+echo "  toolkit automatically for everyone working on this repository."
 echo ""
 echo -e "  ${DIM}Files that will be created:${NC}"
 echo "    .github/copilot-instructions.md"
@@ -104,7 +104,7 @@ echo ""
 if ask "Set up for GitHub Copilot?"; then
   if guard ".github/copilot-instructions.md"; then
     download "platforms/copilot-instructions.md" ".github/copilot-instructions.md" && {
-      echo -e "  ${GREEN}✓ Done. Commit the file so the whole team gets the skill.${NC}"
+      echo -e "  ${GREEN}✓ Done. Commit the file so the whole team gets the toolkit.${NC}"
       installed+=("GitHub Copilot")
     }
   else
@@ -145,7 +145,7 @@ echo ""
 
 echo -e "${BOLD}  [4/7] Cline (VS Code)${NC}"
 echo ""
-echo "  Adds .clinerules with the full FieldTwin skill. Cline injects it"
+echo "  Adds .clinerules with the full FieldTwin Agent. Cline injects it"
 echo "  as a system prompt for every conversation in this workspace."
 echo ""
 echo -e "  ${DIM}Files that will be created:${NC}"
@@ -170,7 +170,7 @@ echo ""
 
 echo -e "${BOLD}  [5/7] Aider${NC}"
 echo ""
-echo "  Creates CONVENTIONS.md with the FieldTwin skill. Aider reads this"
+echo "  Creates CONVENTIONS.md with the FieldTwin Agent. Aider reads this"
 echo "  file automatically on startup in the current directory."
 echo ""
 echo -e "  ${DIM}Files that will be created:${NC}"
@@ -179,7 +179,7 @@ echo ""
 if ask "Set up for Aider?"; then
   if guard "CONVENTIONS.md"; then
     download "fieldtwin-instructions.md" "CONVENTIONS.md" && {
-      echo -e "  ${GREEN}✓ Done. Run aider in this directory to activate the skill.${NC}"
+      echo -e "  ${GREEN}✓ Done. Run aider in this directory to activate the toolkit.${NC}"
       installed+=("Aider")
     }
   else
@@ -195,7 +195,7 @@ echo ""
 
 echo -e "${BOLD}  [6/7] Antigravity CLI${NC}"
 echo ""
-echo "  Creates .antigravity.md with the FieldTwin skill. Antigravity CLI"
+echo "  Creates .antigravity.md with the FieldTwin Agent. Antigravity CLI"
 echo "  reads this file automatically when you run 'agy' in this directory."
 echo "  (Replaces Gemini CLI, discontinued June 18, 2026)"
 echo ""
@@ -205,7 +205,7 @@ echo ""
 if ask "Set up for Antigravity CLI?"; then
   if guard ".antigravity.md"; then
     download "platforms/antigravity.md" ".antigravity.md" && {
-      echo -e "  ${GREEN}✓ Done. Run agy in this directory to activate the skill.${NC}"
+      echo -e "  ${GREEN}✓ Done. Run agy in this directory to activate the toolkit.${NC}"
       installed+=("Antigravity CLI")
     }
   else

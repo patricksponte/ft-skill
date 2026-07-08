@@ -1,6 +1,6 @@
-# FieldTwin AI Skill — Integration Creator (Windows / PowerShell)
+# FieldTwin AI Agent Toolkit — Integration Creator (Windows / PowerShell)
 # Creates a new FieldTwin integration project from scratch,
-# with the AI skill pre-configured and the Hello World ready to run.
+# with the AI Agent Toolkit pre-configured and the Hello World ready to run.
 #
 # Usage: .\create.ps1
 
@@ -32,7 +32,7 @@ function Separator { Write-Host "  $('─' * 54)" -ForegroundColor DarkGray }
 # ── Header ────────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "  FieldTwin AI Skill — Integration Creator" -ForegroundColor White
+Write-Host "  FieldTwin AI Agent Toolkit — Integration Creator" -ForegroundColor White
 Separator
 Write-Host "  Creates a new FieldTwin integration project on your machine."
 Write-Host "  The Hello World will be ready to open in FieldTwin immediately."
@@ -120,7 +120,7 @@ Write-Host ""
 
 Write-Host "  Step 4 — AI tools" -ForegroundColor White
 Write-Host ""
-Write-Host "  Which AI tools do you use? Skill files will be placed"
+Write-Host "  Which AI tools do you use? agent files will be placed"
 Write-Host "  in the right location for each one."
 Write-Host ""
 
@@ -179,17 +179,17 @@ if ($Template -eq "node") {
     if (Download-File "templates/python/requirements.txt" "$ProjectDir\requirements.txt") { Write-Host "  + requirements.txt" -ForegroundColor Green }
 }
 
-# ── AI skill files ────────────────────────────────────────────────────────────
+# ── AI Agent Toolkit files ────────────────────────────────────────────────────────────
 
 if ($AiTools.Count -gt 0) {
     Write-Host ""
-    Write-Host "  AI skill files:" -ForegroundColor DarkGray
+    Write-Host "  AI Agent Toolkit files:" -ForegroundColor DarkGray
     Write-Host ""
 
     foreach ($tool in $AiTools) {
         switch ($tool) {
             "claude-code" {
-                $ok = Download-File "platforms/claude-code-skill.md"  "$ProjectDir\.claude\skills\fieldtwin.md"
+                $ok = Download-File "platforms/claude-code.md"  "$ProjectDir\.claude\skills\fieldtwin.md"
                 $ok = $ok -and (Download-File "fieldtwin-instructions.md" "$ProjectDir\.claude\fieldtwin-instructions.md")
                 $ok = $ok -and (Download-File "api-reference.json"        "$ProjectDir\.claude\api-reference.json")
                 if ($ok) { Write-Host "  + Claude Code  (.claude\)" -ForegroundColor Green }

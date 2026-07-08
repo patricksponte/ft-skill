@@ -1,5 +1,5 @@
-# FieldTwin AI Skill — Project Installer (Windows / PowerShell)
-# Downloads skill files from GitHub and places them in the correct locations
+# FieldTwin AI Agent Toolkit — Project Installer (Windows / PowerShell)
+# Downloads agent files from GitHub and places them in the correct locations
 # for each AI coding tool you use in this project.
 #
 # Usage: Right-click this file and choose "Run with PowerShell"
@@ -42,12 +42,12 @@ function Separator { Write-Host "  $('─' * 54)" -ForegroundColor DarkGray }
 # ── Header ────────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Write-Host "  FieldTwin AI Skill — Project Installer" -ForegroundColor White
+Write-Host "  FieldTwin AI Agent Toolkit — Project Installer" -ForegroundColor White
 Separator
 Write-Host "  Installing into: " -NoNewline
 Write-Host (Get-Location) -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  This script downloads the FieldTwin AI Skill from GitHub"
+Write-Host "  This script downloads the FieldTwin AI Agent Toolkit from GitHub"
 Write-Host "  and sets it up for the AI tools you use in this project."
 Write-Host "  You will be asked before anything is written to disk."
 Separator
@@ -62,16 +62,16 @@ Write-Host "  the full API reference where the command can read it."
 Write-Host ""
 Write-Host "  Files that will be created:" -ForegroundColor DarkGray
 Write-Host "    .claude\skills\fieldtwin.md        <- /fieldtwin slash command"
-Write-Host "    .claude\fieldtwin-instructions.md  <- complete skill reference"
+Write-Host "    .claude\fieldtwin-instructions.md  <- complete agent reference"
 Write-Host "    .claude\api-reference.json         <- all 120+ REST endpoints"
 Write-Host ""
 if (Ask "Set up for Claude Code?") {
     $ok = Guard ".claude\skills\fieldtwin.md"
-    if ($ok) { $ok = Download-File "platforms/claude-code-skill.md"  ".claude\skills\fieldtwin.md" }
+    if ($ok) { $ok = Download-File "platforms/claude-code.md"  ".claude\skills\fieldtwin.md" }
     if ($ok) { $ok = Download-File "fieldtwin-instructions.md"       ".claude\fieldtwin-instructions.md" }
     if ($ok) { $ok = Download-File "api-reference.json"              ".claude\api-reference.json" }
     if ($ok) {
-        Write-Host "  Done. Type /fieldtwin in Claude Code to activate the skill." -ForegroundColor Green
+        Write-Host "  Done. Type /fieldtwin in Claude Code to activate the toolkit." -ForegroundColor Green
         $installed += "Claude Code"
     }
 } else {
@@ -85,7 +85,7 @@ Write-Host ""
 Write-Host "  [2/7] GitHub Copilot" -ForegroundColor White
 Write-Host ""
 Write-Host "  Adds .github\copilot-instructions.md so Copilot reads the FieldTwin"
-Write-Host "  skill automatically for everyone working on this repository."
+Write-Host "  toolkit automatically for everyone working on this repository."
 Write-Host ""
 Write-Host "  Files that will be created:" -ForegroundColor DarkGray
 Write-Host "    .github\copilot-instructions.md"
@@ -93,7 +93,7 @@ Write-Host ""
 if (Ask "Set up for GitHub Copilot?") {
     if (Guard ".github\copilot-instructions.md") {
         if (Download-File "platforms/copilot-instructions.md" ".github\copilot-instructions.md") {
-            Write-Host "  Done. Commit the file so the whole team gets the skill." -ForegroundColor Green
+            Write-Host "  Done. Commit the file so the whole team gets the toolkit." -ForegroundColor Green
             $installed += "GitHub Copilot"
         }
     } else { $skipped += "GitHub Copilot" }
@@ -130,7 +130,7 @@ Write-Host ""
 
 Write-Host "  [4/7] Cline (VS Code)" -ForegroundColor White
 Write-Host ""
-Write-Host "  Adds .clinerules with the full FieldTwin skill. Cline injects it"
+Write-Host "  Adds .clinerules with the full FieldTwin Agent. Cline injects it"
 Write-Host "  as a system prompt for every conversation in this workspace."
 Write-Host ""
 Write-Host "  Files that will be created:" -ForegroundColor DarkGray
@@ -153,7 +153,7 @@ Write-Host ""
 
 Write-Host "  [5/7] Aider" -ForegroundColor White
 Write-Host ""
-Write-Host "  Creates CONVENTIONS.md with the FieldTwin skill. Aider reads this"
+Write-Host "  Creates CONVENTIONS.md with the FieldTwin Agent. Aider reads this"
 Write-Host "  file automatically on startup in the current directory."
 Write-Host ""
 Write-Host "  Files that will be created:" -ForegroundColor DarkGray
@@ -162,7 +162,7 @@ Write-Host ""
 if (Ask "Set up for Aider?") {
     if (Guard "CONVENTIONS.md") {
         if (Download-File "fieldtwin-instructions.md" "CONVENTIONS.md") {
-            Write-Host "  Done. Run aider in this directory to activate the skill." -ForegroundColor Green
+            Write-Host "  Done. Run aider in this directory to activate the toolkit." -ForegroundColor Green
             $installed += "Aider"
         }
     } else { $skipped += "Aider" }
@@ -176,7 +176,7 @@ Write-Host ""
 
 Write-Host "  [6/7] Antigravity CLI" -ForegroundColor White
 Write-Host ""
-Write-Host "  Creates .antigravity.md with the FieldTwin skill. Antigravity CLI"
+Write-Host "  Creates .antigravity.md with the FieldTwin Agent. Antigravity CLI"
 Write-Host "  reads this file automatically when you run 'agy' in this directory."
 Write-Host "  (Replaces Gemini CLI, discontinued June 18, 2026)"
 Write-Host ""
@@ -186,7 +186,7 @@ Write-Host ""
 if (Ask "Set up for Antigravity CLI?") {
     if (Guard ".antigravity.md") {
         if (Download-File "platforms/antigravity.md" ".antigravity.md") {
-            Write-Host "  Done. Run agy in this directory to activate the skill." -ForegroundColor Green
+            Write-Host "  Done. Run agy in this directory to activate the toolkit." -ForegroundColor Green
             $installed += "Antigravity CLI"
         }
     } else { $skipped += "Antigravity CLI" }
