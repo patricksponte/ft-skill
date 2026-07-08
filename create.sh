@@ -5,6 +5,9 @@
 
 REPO_BASE="https://raw.githubusercontent.com/patricksponte/ft-skill/main"
 
+# Allow interactive input even when piped via curl | bash
+exec < /dev/tty
+
 BOLD='\033[1m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

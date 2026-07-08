@@ -33,6 +33,11 @@ curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.ps1" -OutFile create.ps1; .\create.ps1
 ```
 
+> **If the script closes immediately without asking questions**, download it first and run it directly:
+> ```bash
+> curl -sSfL https://raw.githubusercontent.com/patricksponde/ft-skill/main/create.sh -o create.sh && bash create.sh
+> ```
+
 Then:
 
 1. **Pick your AI tool below** and add the agent context — takes 2 minutes
@@ -1059,6 +1064,11 @@ curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.ps1" -OutFile create.ps1
 .\create.ps1
 ```
+
+> **If the script closes immediately without asking questions**, download it first and run it directly:
+> ```bash
+> curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.sh -o create.sh && bash create.sh
+> ```
 
 The script asks four questions:
 
