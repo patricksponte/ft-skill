@@ -1041,12 +1041,13 @@ AI Client  ──stdin/stdout──  mcp-server/index.js  ──HTTPS──  Fie
 
 ## Scripts
 
-There are two scripts depending on your situation:
+There are three scripts depending on your situation:
 
 | Script | When to use |
 |---|---|
 | `create` | Starting a new integration from scratch |
 | `install` | Adding the agent toolkit to a project that already exists |
+| `update` | Refreshing agent files in an existing project to the latest version |
 
 ### create — new integration from scratch
 
@@ -1133,6 +1134,25 @@ Covers: **Claude Code · GitHub Copilot · Cursor / Windsurf · Cline · Aider �
 For each tool: shows what will be installed, asks for confirmation, warns before overwriting existing files.
 
 </details>
+
+### update — refresh agent files to the latest version
+
+Run this script inside your existing integration project. It detects which agent files are already present and overwrites only those with the latest version from GitHub. Your own code (`index.html`, `app.py`, `server.js`, etc.) is never touched.
+
+**Linux / macOS:**
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/update.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill/main/update.ps1" -OutFile update.ps1
+.\update.ps1
+```
+
+Files it can update: `.claude/fieldtwin-instructions.md` · `.claude/skills/fieldtwin.md` · `.claude/api-reference.json` · `.github/copilot-instructions.md` · `.cursorrules` · `.clinerules` · `CONVENTIONS.md` · `.antigravity.md` · `.opencode/agents/fieldtwin.md`
 
 ---
 
