@@ -601,19 +601,39 @@ async function apiDelete(session, path) {
 }
 ```
 
+### Response shape
+
+List endpoints (`GET /stagedAssets`, `GET /wells`, etc.) return a **plain object keyed by ID**, not an array:
+
+```javascript
+// Actual response shape:
+{
+  "-ABC123": { id: "-ABC123", name: "Manifold A", ... },
+  "-DEF456": { id: "-DEF456", name: "Pipeline B", ... }
+}
+```
+
+Always normalize with `Object.values()` before iterating:
+
+```javascript
+function toList(data) {
+  return Array.isArray(data) ? data : Object.values(data);
+}
+```
+
 ### Common API patterns
 
 ```javascript
 const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 
-// List resources
-const assets      = await apiGet(session, `${BASE}/stagedAssets`);
-const wells       = await apiGet(session, `${BASE}/wells`);
-const connections = await apiGet(session, `${BASE}/connections`);
-const shapes      = await apiGet(session, `${BASE}/shapes`);
-const overlays    = await apiGet(session, `${BASE}/overlays`);
-const frames      = await apiGet(session, `${BASE}/frames`);
-const annotations = await apiGet(session, `${BASE}/annotations`);
+// List resources — always wrap with toList() to handle the map response
+const assets      = toList(await apiGet(session, `${BASE}/stagedAssets`));
+const wells       = toList(await apiGet(session, `${BASE}/wells`));
+const connections = toList(await apiGet(session, `${BASE}/connections`));
+const shapes      = toList(await apiGet(session, `${BASE}/shapes`));
+const overlays    = toList(await apiGet(session, `${BASE}/overlays`));
+const frames      = toList(await apiGet(session, `${BASE}/frames`));
+const annotations = toList(await apiGet(session, `${BASE}/annotations`));
 
 // Get a single resource
 const asset = await apiGet(session, `${BASE}/stagedAsset/${assetId}`);
@@ -821,7 +841,8 @@ async function loadAssets() {
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    const assets = data.stagedAssets || data;
+    // Response is a map { id: asset } — normalize to array
+    const assets = Array.isArray(data) ? data : Object.values(data);
     renderList(assets);
   } catch (err) {
     document.getElementById('output').textContent = `Error: ${err.message}`;

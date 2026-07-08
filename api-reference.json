@@ -18,6 +18,7 @@
     "notes": [
       "Always wait for APIServerIsReady: true in the loaded event before making API calls.",
       "Tokens from the loaded event are session-scoped and will expire when the session ends.",
+      "List endpoints (GET /stagedAssets, GET /wells, etc.) return a plain object keyed by ID, not an array. Always normalize: Array.isArray(data) ? data : Object.values(data)",
       "This reference was validated against the FieldTwin QA/Dev OpenAPI spec (api-qa.fieldtwin.com/oas3.json). Some endpoints may differ on production tenants."
     ]
   },
