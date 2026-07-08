@@ -37,7 +37,7 @@ Two methods supported:
 
 **Never set both headers at the same time.**
 
-> Use `-` as `projectId` in API paths — e.g. `/API/v1.10/-/subProject/{subProjectId}/stagedAssets`
+> Get `projectId` from `msg.project` in the `loaded` event and use it in all API paths.
 
 ---
 
@@ -56,6 +56,7 @@ window.addEventListener('message', function(event) {
     session = {
       token:        msg.token,
       backendUrl:   msg.backendUrl,
+      projectId:    msg.project,
       subProjectId: msg.subProject.split(':').pop(),  // may arrive as "id:id" format
       customTabId:  msg.customTabId,
       canEdit:      msg.canEdit
@@ -108,7 +109,7 @@ All messages use: `window.parent.postMessage(payload, '*')`
 ## REST API Helpers
 
 ```javascript
-const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
+const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 const HEADERS = { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' };
 
 async function apiGet(path) {
@@ -143,7 +144,7 @@ const shapes      = await apiGet(`${BASE}/shapes`);
 const overlays    = await apiGet(`${BASE}/overlays`);
 const frames      = await apiGet(`${BASE}/frames`);
 const annotations = await apiGet(`${BASE}/annotations`);
-const metaDefs    = await apiGet(`/API/v1.10/-/metaDataDefinitions`);
+const metaDefs    = await apiGet(`/API/v1.10/${session.projectId}/metaDataDefinitions`);
 const meta        = await apiGet(`${BASE}/${resourceId}/metaData`);
 
 await apiPost(`${BASE}/stagedAssets`, { name: 'My Asset', initialState: { x: 665000, y: 400000, z: 0, rotation: 0 } });
@@ -173,7 +174,7 @@ await apiDelete(`${BASE}/stagedAsset/${id}`);
 |---|---|
 | No `loaded` event | Page must be served via HTTP/HTTPS — not `file://` |
 | API 401 | Token expired or missing `Bearer ` prefix |
-| API 404 | No trailing slash on `backendUrl`; use `-` as projectId; check `subProjectId` |
+| API 404 | No trailing slash on `backendUrl`; check `subProjectId` |
 | Messages not working | Use `window.parent.postMessage` — only works inside FieldTwin iFrame |
 | `APIServerIsReady` false | Also listen for `apiPodIsReady` event |
 | `customTabId` undefined | Wait for `loaded` event |

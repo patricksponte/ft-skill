@@ -91,7 +91,7 @@ headers: {
 }
 ```
 
-> **Tip:** Use `-` as the `projectId` in API paths when your `subProjectId` is globally unique, which is always the case inside an integration.
+> **Tip:** Get `projectId` from `msg.project` in the `loaded` event and use it in all API paths: `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}/...`
 
 ---
 
@@ -122,6 +122,7 @@ window.addEventListener('message', function(event) {
       session = {
         token:        msg.token,
         backendUrl:   msg.backendUrl,
+        projectId:    msg.project,
         subProjectId: msg.subProject.split(':').pop(),  // may arrive as "id:id" format
         customTabId:  msg.customTabId,
         canEdit:      msg.canEdit
@@ -600,7 +601,7 @@ async function apiDelete(session, path) {
 ### Common API patterns
 
 ```javascript
-const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
+const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 
 // List resources
 const assets      = await apiGet(session, `${BASE}/stagedAssets`);
@@ -636,7 +637,7 @@ await apiDelete(session, `${BASE}/stagedAsset/${assetId}`);
 const meta = await apiGet(session, `${BASE}/${resourceId}/metaData`);
 
 // Get metadata definitions
-const defs = await apiGet(session, `/API/v1.10/-/metaDataDefinitions`);
+const defs = await apiGet(session, `/API/v1.10/${session.projectId}/metaDataDefinitions`);
 ```
 
 ---
@@ -647,7 +648,7 @@ Metadata definitions describe what custom fields exist and their types. Metadata
 
 ```javascript
 // 1. Get definitions to know what fields are available
-const definitions = await apiGet(session, `/API/v1.10/-/metaDataDefinitions`);
+const definitions = await apiGet(session, `/API/v1.10/${session.projectId}/metaDataDefinitions`);
 
 // 2. Read metadata on a resource
 const resourceId = 'staged-asset-uuid';
@@ -811,7 +812,7 @@ window.addEventListener('message', async function(event) {
 async function loadAssets() {
   try {
     const res = await fetch(
-      `${session.backendUrl}/API/v1.10/-/subProject/${session.subProjectId}/stagedAssets`,
+      `${session.backendUrl}/API/v1.10/${session.projectId}/subProject/${session.subProjectId}/stagedAssets`,
       { headers: { 'Authorization': `Bearer ${session.token}` } }
     );
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -870,10 +871,10 @@ function registerFilters() {
 
 ```javascript
 async function showMetadata(session, resourceId) {
-  const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
+  const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 
   const [defs, values] = await Promise.all([
-    apiGet(session, `/API/v1.10/-/metaDataDefinitions`),
+    apiGet(session, `/API/v1.10/${session.projectId}/metaDataDefinitions`),
     apiGet(session, `${BASE}/${resourceId}/metaData`)
   ]);
 
@@ -907,7 +908,7 @@ async function showMetadata(session, resourceId) {
 
 1. Double-check `backendUrl` — no trailing slash.
 2. Confirm `subProjectId` is correct (comes from `msg.subProject`, not `msg.subProjectId`).
-3. Check that you use `-` as `projectId` (e.g. `/API/v1.10/-/subProject/...`).
+3. Check that `session.projectId` is set (from `msg.project` in the `loaded` event) and used in the API path.
 4. Verify the API version in the path matches (`v1.10`).
 
 ### Toast / messages sent but nothing happens
@@ -953,7 +954,7 @@ All endpoints are in `api-reference.json`. The most common paths for integration
 | annotations | `GET /annotations` | `GET /annotations/{id}` | `POST /annotations` | `PATCH /annotations/{id}` | `DELETE /annotations/{id}` |
 | metaData | `GET /{resourceId}/metaData` | — | `POST /{resourceId}/metaData` | `PATCH /{resourceId}/metaData/{id}` | `DELETE /{resourceId}/metaData/{id}` |
 
-All paths above are relative to: `{backendUrl}/API/v1.10/-/subProject/{subProjectId}/`
+All paths above are relative to: `{backendUrl}/API/v1.10/{projectId}/subProject/{subProjectId}/`
 
 Full API spec: https://api.fieldtwin.com | OpenAPI JSON: https://api-qa.fieldtwin.com/oas3.json
 
@@ -980,6 +981,6 @@ Full API spec: https://api.fieldtwin.com | OpenAPI JSON: https://api-qa.fieldtwi
 | Clear the selection | Send: `clearSelection` |
 | Query resources by tag | Send: `getResourcesByTags` |
 | Get visible resources | Send: `getVisibleResources` |
-| List assets via API | `GET /API/v1.10/-/subProject/{id}/stagedAssets` |
-| Create asset via API | `POST /API/v1.10/-/subProject/{id}/stagedAssets` |
-| Read metadata | `GET /API/v1.10/-/subProject/{id}/{resourceId}/metaData` |
+| List assets via API | `GET /API/v1.10/{projectId}/subProject/{id}/stagedAssets` |
+| Create asset via API | `POST /API/v1.10/{projectId}/subProject/{id}/stagedAssets` |
+| Read metadata | `GET /API/v1.10/{projectId}/subProject/{id}/{resourceId}/metaData` |

@@ -44,6 +44,7 @@ window.addEventListener('message', function(event) {
     session = {
       token:        msg.token,
       backendUrl:   msg.backendUrl,
+      projectId:    msg.project,
       subProjectId: msg.subProject.split(':').pop(),  // may arrive as "id:id" format
       customTabId:  msg.customTabId,
       canEdit:      msg.canEdit
@@ -69,7 +70,7 @@ headers: { 'Authorization': 'Bearer JWT_TOKEN', 'Content-Type': 'application/jso
 headers: { 'token': 'API_TOKEN', 'Content-Type': 'application/json' }
 ```
 
-Use `-` as `projectId` in all API paths: `/API/v1.10/-/subProject/{subProjectId}/...`
+Get `projectId` from `msg.project` in the `loaded` event. Use it in all API paths: `/API/v1.10/{projectId}/subProject/{subProjectId}/...`
 
 ---
 
@@ -139,7 +140,7 @@ window.parent.postMessage({ event: 'updateTagsAnnotation', data: { annotations: 
 ## REST API
 
 ```javascript
-const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
+const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 const H = { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' };
 
 // Read
@@ -150,7 +151,7 @@ const shapes      = await fetch(`${session.backendUrl}${BASE}/shapes`, { headers
 const overlays    = await fetch(`${session.backendUrl}${BASE}/overlays`, { headers: H }).then(r => r.json());
 const frames      = await fetch(`${session.backendUrl}${BASE}/frames`, { headers: H }).then(r => r.json());
 const annotations = await fetch(`${session.backendUrl}${BASE}/annotations`, { headers: H }).then(r => r.json());
-const metaDefs    = await fetch(`${session.backendUrl}/API/v1.10/-/metaDataDefinitions`, { headers: H }).then(r => r.json());
+const metaDefs    = await fetch(`${session.backendUrl}/API/v1.10/${session.projectId}/metaDataDefinitions`, { headers: H }).then(r => r.json());
 const meta        = await fetch(`${session.backendUrl}${BASE}/${resourceId}/metaData`, { headers: H }).then(r => r.json());
 
 // Write

@@ -53,8 +53,8 @@ headers: { 'Authorization': 'Bearer JWT_TOKEN', 'Content-Type': 'application/jso
 headers: { 'token': 'API_TOKEN', 'Content-Type': 'application/json' }
 ```
 
-Use `-` as the `projectId` in all API paths inside an integration:
-`/API/v1.10/-/subProject/{subProjectId}/...`
+Get `projectId` from `msg.project` in the `loaded` event and use it in all API paths:
+`/API/v1.10/{projectId}/subProject/{subProjectId}/...`
 
 ## Setup Checklist
 
@@ -76,6 +76,7 @@ window.addEventListener('message', function(event) {
     session = {
       token:        msg.token,
       backendUrl:   msg.backendUrl,
+      projectId:    msg.project,
       subProjectId: msg.subProject.split(':').pop(),  // may arrive as "id:id" format
       customTabId:  msg.customTabId,
       canEdit:      msg.canEdit
@@ -224,7 +225,7 @@ window.parent.postMessage({ event: 'getProjectData' }, '*');
 ## REST API Access
 
 ```javascript
-const BASE = `/API/v1.10/-/subProject/${session.subProjectId}`;
+const BASE = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}`;
 const H = { 'Authorization': `Bearer ${session.token}`, 'Content-Type': 'application/json' };
 
 // READ
@@ -234,7 +235,7 @@ const connections = await fetch(`${session.backendUrl}${BASE}/connections`, { he
 const shapes      = await fetch(`${session.backendUrl}${BASE}/shapes`, { headers: H }).then(r => r.json());
 const overlays    = await fetch(`${session.backendUrl}${BASE}/overlays`, { headers: H }).then(r => r.json());
 const annotations = await fetch(`${session.backendUrl}${BASE}/annotations`, { headers: H }).then(r => r.json());
-const metaDefs    = await fetch(`${session.backendUrl}/API/v1.10/-/metaDataDefinitions`, { headers: H }).then(r => r.json());
+const metaDefs    = await fetch(`${session.backendUrl}/API/v1.10/${session.projectId}/metaDataDefinitions`, { headers: H }).then(r => r.json());
 const meta        = await fetch(`${session.backendUrl}${BASE}/${resourceId}/metaData`, { headers: H }).then(r => r.json());
 
 // WRITE
@@ -279,7 +280,7 @@ Full API reference: `api-reference.json` | Docs: https://api.fieldtwin.com
 |---|---|
 | No `loaded` event | Serve page via HTTP/HTTPS — not `file://` |
 | API 401 | Token expired or missing `Bearer ` prefix in Authorization header |
-| API 404 | No trailing slash on `backendUrl`; use `-` as projectId; check `subProjectId` |
+| API 404 | No trailing slash on `backendUrl`; check `subProjectId` |
 | Messages not working | Use `window.parent.postMessage` — only works inside FieldTwin iFrame |
 | `APIServerIsReady` false | Also listen for `apiPodIsReady` event before calling the API |
 | `customTabId` undefined | Wait for `loaded` event before using it |
