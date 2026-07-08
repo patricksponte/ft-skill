@@ -35,7 +35,7 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill
 
 > **If the script closes immediately without asking questions**, download it first and run it directly:
 > ```bash
-> curl -sSfL https://raw.githubusercontent.com/patricksponde/ft-skill/main/create.sh -o create.sh && bash create.sh
+> curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.sh -o create.sh && bash create.sh
 > ```
 
 Then:
