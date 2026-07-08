@@ -5,7 +5,7 @@
 # Usage: Right-click this file and choose "Run with PowerShell"
 #        or run from a terminal: .\install.ps1
 
-$RepoBase = "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main"
+$RepoBase = "https://raw.githubusercontent.com/patricksponte/ft-skill/main"
 
 $installed = @()
 $skipped   = @()

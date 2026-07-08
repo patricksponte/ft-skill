@@ -3,7 +3,7 @@
 # Creates a new FieldTwin integration project from scratch,
 # with the AI Agent Toolkit pre-configured and the Hello World ready to run.
 
-REPO_BASE="https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main"
+REPO_BASE="https://raw.githubusercontent.com/patricksponte/ft-skill/main"
 
 BOLD='\033[1m'
 GREEN='\033[0;32m'

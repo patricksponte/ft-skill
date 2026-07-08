@@ -25,12 +25,12 @@ This toolkit gives your AI assistant complete knowledge of the FieldTwin integra
 
 ```bash
 # Linux / macOS
-curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.sh | bash
+curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.ps1" -OutFile create.ps1; .\create.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.ps1" -OutFile create.ps1; .\create.ps1
 ```
 
 Then:
@@ -155,11 +155,11 @@ ngrok creates a temporary public HTTPS URL that tunnels directly to your local s
 | `api-quick-reference.md` | ~4 KB | Token-limited models, quick paste in any chat, small local models |
 | `api-reference.json` | ~18 KB | Structured endpoint reference — attach as a file when the AI supports it |
 
-> **Raw file URLs** (replace `YOUR_ORG/YOUR_REPO` with your GitHub repository):
+> **Raw file URLs** (replace `patricksponte/ft-skill` with your GitHub repository):
 > ```
-> https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
-> https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-quick-reference.md
-> https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/copilot-instructions.md
+> https://raw.githubusercontent.com/patricksponte/ft-skill/main/fieldtwin-instructions.md
+> https://raw.githubusercontent.com/patricksponte/ft-skill/main/api-quick-reference.md
+> https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/copilot-instructions.md
 > ```
 
 ---
@@ -177,7 +177,7 @@ GitHub Copilot automatically reads `.github/copilot-instructions.md` from the ro
    ```bash
    mkdir -p .github
    curl -o .github/copilot-instructions.md \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/copilot-instructions.md
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/copilot-instructions.md
    ```
 2. Commit and push:
    ```bash
@@ -201,7 +201,7 @@ Both Cursor and Windsurf automatically read `.cursorrules` from the project root
 1. Copy the rules file to your integration project root:
    ```bash
    curl -o .cursorrules \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/.cursorrules
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/.cursorrules
    ```
 2. Restart Cursor or Windsurf if it is already open.
 3. No other setup needed — open the AI chat and start asking.
@@ -221,7 +221,7 @@ Cline is a VS Code extension that supports custom system prompts per project via
 2. Create a `.clinerules` file in your integration project root:
    ```bash
    curl -o .clinerules \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/fieldtwin-instructions.md
    ```
 3. Cline will automatically inject `.clinerules` as a system prompt for every conversation in that workspace.
 
@@ -256,8 +256,8 @@ Add the raw GitHub URL as a documentation source so Continue.dev can fetch it on
   "docs": [
     {
       "title": "FieldTwin Integration API",
-      "startUrl": "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md",
-      "rootUrl": "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/"
+      "startUrl": "https://raw.githubusercontent.com/patricksponte/ft-skill/main/fieldtwin-instructions.md",
+      "rootUrl": "https://raw.githubusercontent.com/patricksponte/ft-skill/main/"
     }
   ]
 }
@@ -329,14 +329,14 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
 2. Copy the agent file to your integration project:
    ```bash
    curl -o .antigravity.md \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/antigravity.md
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/antigravity.md
    ```
 3. Optionally copy the full reference and endpoint list:
    ```bash
    curl -o fieldtwin-instructions.md \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/fieldtwin-instructions.md
    curl -o api-reference.json \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-reference.json
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/api-reference.json
    ```
 4. Run `agy` in your project folder — the toolkit is active automatically.
 
@@ -355,7 +355,7 @@ JetBrains AI Assistant (available in IntelliJ IDEA, PyCharm, WebStorm, etc.) sup
 
 ```bash
 curl -o CONVENTIONS.md \
-  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+  https://raw.githubusercontent.com/patricksponte/ft-skill/main/fieldtwin-instructions.md
 ```
 
 Aider reads `CONVENTIONS.md` from the current directory automatically on startup.
@@ -369,7 +369,7 @@ aider --read fieldtwin-instructions.md --read api-reference.json
 **Option C — System prompt flag:**
 
 ```bash
-aider --system-prompt "$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-quick-reference.md)"
+aider --system-prompt "$(curl -s https://raw.githubusercontent.com/patricksponte/ft-skill/main/api-quick-reference.md)"
 ```
 
 </details>
@@ -390,7 +390,7 @@ aider --system-prompt "$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR
 2. Copy the instructions file to your integration project:
    ```bash
    curl -o fieldtwin-instructions.md \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/fieldtwin-instructions.md
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/fieldtwin-instructions.md
    ```
 3. Create `.opencode.json` in your project root:
    ```json
@@ -410,7 +410,7 @@ Copy the agent file so a dedicated `fieldtwin` agent is available inside OpenCod
 ```bash
 mkdir -p .opencode/agents
 curl -o .opencode/agents/fieldtwin.md \
-  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.md
+  https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/opencode.md
 ```
 
 Switch to the agent inside OpenCode with the `/fieldtwin` command in the prompt.
@@ -426,7 +426,7 @@ The MCP server gives OpenCode direct access to your live FieldTwin data — no c
 1. Copy the example project config:
    ```bash
    curl -o .opencode.json \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.json
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/opencode.json
    ```
 2. Edit `.opencode.json` and replace:
    - `/ABSOLUTE/PATH/TO/fieldtwin-ai-agent-toolkit/mcp-server/index.js` — absolute path on your machine
@@ -556,7 +556,7 @@ Amazon Q Developer (available in VS Code, JetBrains, and the AWS console) suppor
    ```bash
    mkdir -p .amazonq
    curl -o .amazonq/rules.md \
-     https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/copilot-instructions.md
+     https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/copilot-instructions.md
    ```
 2. Amazon Q Developer will include this file as context in inline suggestions and chat responses.
 3. In the Q chat panel, you can also type `/dev` followed by your question to use the full context.
@@ -604,7 +604,7 @@ Amazon Q Developer (available in VS Code, JetBrains, and the AWS console) suppor
 cat > Modelfile << 'EOF'
 FROM qwen2.5-coder:32b
 SYSTEM """
-$(curl -s https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/api-quick-reference.md)
+$(curl -s https://raw.githubusercontent.com/patricksponte/ft-skill/main/api-quick-reference.md)
 """
 EOF
 
@@ -968,7 +968,7 @@ OpenCode reads MCP configuration from `.opencode.json` in the project root. Copy
 
 ```bash
 curl -o .opencode.json \
-  https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/platforms/opencode.json
+  https://raw.githubusercontent.com/patricksponte/ft-skill/main/platforms/opencode.json
 ```
 
 Then edit `.opencode.json`: set the absolute path to `mcp-server/index.js` and your API token. See **OpenCode** in the CLI Tools section above for the full setup walkthrough.
@@ -1050,13 +1050,13 @@ Run this script anywhere on your machine. It asks four questions and creates a r
 **Linux / macOS:**
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.sh | bash
+curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.sh | bash
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.ps1" -OutFile create.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill/main/create.ps1" -OutFile create.ps1
 .\create.ps1
 ```
 
@@ -1093,13 +1093,13 @@ Run this script inside your existing integration project directory.
 **Linux / macOS:**
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.sh | bash
+curl -sSfL https://raw.githubusercontent.com/patricksponte/ft-skill/main/install.sh | bash
 ```
 
 **Windows (PowerShell):**
 
 ```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/install.ps1" -OutFile install.ps1
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/patricksponte/ft-skill/main/install.ps1" -OutFile install.ps1
 .\install.ps1
 ```
 
@@ -1138,7 +1138,7 @@ npx serve examples/hello-world
 # then open http://localhost:3000 in FieldTwin as an integration
 ```
 
-Option B — GitHub Pages: enable Pages in your repo settings, then use `https://YOUR_ORG.github.io/YOUR_REPO/examples/hello-world/`
+Option B — GitHub Pages: enable Pages in your repo settings, then use `https://patricksponte.github.io/ft-skill/examples/hello-world/`
 
 Option C — Any web server: copy `index.html` to your server. The file is completely self-contained.
 
