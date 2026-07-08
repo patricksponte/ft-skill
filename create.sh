@@ -37,6 +37,19 @@ ask() {
 
 separator() { echo -e "${DIM}  ──────────────────────────────────────────────────────${NC}"; }
 
+# ── Prerequisite check — curl or wget ────────────────────────────────────────
+
+if ! command -v curl &>/dev/null && ! command -v wget &>/dev/null; then
+  echo ""
+  echo -e "  ${RED}Error: curl or wget is required to download files.${NC}"
+  echo ""
+  echo "  Install one of them and run this script again:"
+  echo "    macOS:  brew install curl"
+  echo "    Ubuntu: sudo apt install curl"
+  echo ""
+  exit 1
+fi
+
 # ── Header ────────────────────────────────────────────────────────────────────
 
 echo ""
@@ -122,6 +135,41 @@ case "$TEMPLATE_CHOICE" in
   3) TEMPLATE="python" ;;
   *) TEMPLATE="static" ;;
 esac
+
+# Prerequisite check — Node.js / Python
+if [[ "$TEMPLATE" == "node" ]]; then
+  if ! command -v node &>/dev/null || ! command -v npm &>/dev/null; then
+    echo ""
+    echo -e "  ${RED}Error: Node.js and npm are required for this template.${NC}"
+    echo ""
+    echo "  Install Node.js (includes npm) from https://nodejs.org"
+    echo "  Then run this script again."
+    echo ""
+    exit 1
+  fi
+fi
+
+if [[ "$TEMPLATE" == "python" ]]; then
+  if ! command -v python3 &>/dev/null && ! command -v python &>/dev/null; then
+    echo ""
+    echo -e "  ${RED}Error: Python is required for this template.${NC}"
+    echo ""
+    echo "  Install Python from https://python.org"
+    echo "  Then run this script again."
+    echo ""
+    exit 1
+  fi
+  if ! command -v pip3 &>/dev/null && ! command -v pip &>/dev/null; then
+    echo ""
+    echo -e "  ${RED}Error: pip is required for this template.${NC}"
+    echo ""
+    echo "  pip is usually included with Python. If missing:"
+    echo "    python3 -m ensurepip --upgrade"
+    echo "  Then run this script again."
+    echo ""
+    exit 1
+  fi
+fi
 
 echo ""
 
@@ -235,15 +283,6 @@ if [[ ${#AI_TOOLS[@]} -gt 0 ]]; then
   done
 fi
 
-# ── Git init ──────────────────────────────────────────────────────────────────
-
-echo ""
-if ask "Initialize a git repository?"; then
-  git -C "$PROJECT_DIR" init -q \
-  && git -C "$PROJECT_DIR" add . \
-  && git -C "$PROJECT_DIR" commit -q -m "Initial commit" \
-  && echo -e "  ${GREEN}✓${NC} Git repository initialized"
-fi
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 

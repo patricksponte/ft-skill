@@ -29,6 +29,19 @@ function Ask($prompt) {
 
 function Separator { Write-Host "  $('─' * 54)" -ForegroundColor DarkGray }
 
+# ── Prerequisite check — download tool ───────────────────────────────────────
+
+if (-not (Get-Command curl -ErrorAction SilentlyContinue) -and
+    -not (Get-Command wget -ErrorAction SilentlyContinue) -and
+    -not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
+    Write-Host ""
+    Write-Host "  Error: no download tool found (curl, wget, or Invoke-WebRequest required)." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "  Install curl from https://curl.se and run this script again."
+    Write-Host ""
+    exit 1
+}
+
 # ── Header ────────────────────────────────────────────────────────────────────
 
 Write-Host ""
@@ -112,6 +125,44 @@ $Template = switch ($TemplateChoice) {
     "2" { "node" }
     "3" { "python" }
     default { "static" }
+}
+
+# Prerequisite check — Node.js / Python
+if ($Template -eq "node") {
+    if (-not (Get-Command node -ErrorAction SilentlyContinue) -or
+        -not (Get-Command npm  -ErrorAction SilentlyContinue)) {
+        Write-Host ""
+        Write-Host "  Error: Node.js and npm are required for this template." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Install Node.js (includes npm) from https://nodejs.org"
+        Write-Host "  Then run this script again."
+        Write-Host ""
+        exit 1
+    }
+}
+
+if ($Template -eq "python") {
+    $pyFound  = (Get-Command python3 -ErrorAction SilentlyContinue) -or (Get-Command python -ErrorAction SilentlyContinue)
+    $pipFound = (Get-Command pip3   -ErrorAction SilentlyContinue) -or (Get-Command pip    -ErrorAction SilentlyContinue)
+    if (-not $pyFound) {
+        Write-Host ""
+        Write-Host "  Error: Python is required for this template." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  Install Python from https://python.org"
+        Write-Host "  Then run this script again."
+        Write-Host ""
+        exit 1
+    }
+    if (-not $pipFound) {
+        Write-Host ""
+        Write-Host "  Error: pip is required for this template." -ForegroundColor Red
+        Write-Host ""
+        Write-Host "  pip is usually included with Python. If missing, run:"
+        Write-Host "    python -m ensurepip --upgrade"
+        Write-Host "  Then run this script again."
+        Write-Host ""
+        exit 1
+    }
 }
 
 Write-Host ""
@@ -231,17 +282,6 @@ if ($AiTools.Count -gt 0) {
     }
 }
 
-# ── Git init ──────────────────────────────────────────────────────────────────
-
-Write-Host ""
-if (Ask "Initialize a git repository?") {
-    Push-Location $ProjectDir
-    git init -q
-    git add .
-    git commit -q -m "Initial commit"
-    Pop-Location
-    Write-Host "  + Git repository initialized" -ForegroundColor Green
-}
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 
