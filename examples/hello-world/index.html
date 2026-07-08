@@ -732,9 +732,8 @@
         }
 
         const data = await res.json();
-        const count = Array.isArray(data)
-          ? data.length
-          : (data[resource] ? data[resource].length : '?');
+        const list = Array.isArray(data) ? data : Object.values(data);
+        const count = list.length;
 
         showApiResult('ok', `✓ HTTP 200 — ${count} item(s) returned\n\n${JSON.stringify(data, null, 2)}`);
         addLog('ok', `API 200 — ${resource} (${count} items)`);
@@ -907,7 +906,7 @@
           const res = await fetch(url, { headers: { 'Authorization': `Bearer ${session.token}` } });
           if (res.ok) {
             const data = await res.json();
-            const count = Array.isArray(data) ? data.length : (data.stagedAssets ? data.stagedAssets.length : '?');
+            const count = Array.isArray(data) ? data.length : Object.values(data).length;
             setCheck('apiping', 'pass', `GET <code>/stagedAssets</code> → HTTP 200, ${count} asset(s) found.`);
             passes++;
           } else {
