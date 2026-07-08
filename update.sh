@@ -37,37 +37,38 @@ echo "  Your own code (index.html, app.py, server.js, etc.) is never touched."
 separator
 echo ""
 
-# ── File map: local path → remote path ───────────────────────────────────────
+# ── File map: "local:remote" pairs ───────────────────────────────────────────
 
-declare -A FILES=(
-  [".claude/fieldtwin-instructions.md"]="fieldtwin-instructions.md"
-  [".claude/skills/fieldtwin.md"]="platforms/claude-code.md"
-  [".claude/api-reference.json"]="api-reference.json"
-  [".github/copilot-instructions.md"]="platforms/copilot-instructions.md"
-  [".cursorrules"]="platforms/.cursorrules"
-  [".clinerules"]="fieldtwin-instructions.md"
-  ["CONVENTIONS.md"]="fieldtwin-instructions.md"
-  [".antigravity.md"]="platforms/antigravity.md"
-  [".opencode/agents/fieldtwin.md"]="platforms/opencode.md"
+FILES=(
+  ".claude/fieldtwin-instructions.md:fieldtwin-instructions.md"
+  ".claude/skills/fieldtwin.md:platforms/claude-code.md"
+  ".claude/api-reference.json:api-reference.json"
+  ".github/copilot-instructions.md:platforms/copilot-instructions.md"
+  ".cursorrules:platforms/.cursorrules"
+  ".clinerules:fieldtwin-instructions.md"
+  "CONVENTIONS.md:fieldtwin-instructions.md"
+  ".antigravity.md:platforms/antigravity.md"
+  ".opencode/agents/fieldtwin.md:platforms/opencode.md"
 )
 
 updated=0
 skipped=0
 failed=0
 
-for local in "${!FILES[@]}"; do
-  remote="${FILES[$local]}"
+for entry in "${FILES[@]}"; do
+  local="${entry%%:*}"
+  remote="${entry#*:}"
   if [[ -f "$local" ]]; then
     if download "$remote" "$local"; then
       echo -e "  ${GREEN}✓${NC} $local"
-      ((updated++))
+      updated=$((updated + 1))
     else
       echo -e "  ${RED}✗${NC} $local  (download failed)"
-      ((failed++))
+      failed=$((failed + 1))
     fi
   else
     echo -e "  ${DIM}—  $local  (not in this project, skipped)${NC}"
-    ((skipped++))
+    skipped=$((skipped + 1))
   fi
 done
 
