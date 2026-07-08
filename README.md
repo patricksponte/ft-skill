@@ -1090,10 +1090,23 @@ The Hello World frontend is the same regardless of the template chosen. The back
 | `fieldtwin.config.json` | Project metadata |
 | `.gitignore` | Ignores `node_modules/`, `.env`, `__pycache__/` |
 | `server.js` + `package.json` | Node.js only — run with `npm install && npm start` |
-| `app.py` + `requirements.txt` | Python only — run with `pip install -r requirements.txt && python app.py` |
+| `app.py` + `requirements.txt` | Python only — see next steps below |
+| `.venv/` | Python only — virtual environment, created automatically, excluded from git |
 | Agent files | One file per selected AI tool, placed in the right location |
 
-> The script checks what is installed and tells you what to install if anything is missing — it never installs anything automatically.
+**Python — first run:**
+
+```bash
+cd your-project
+source .venv/bin/activate          # macOS / Linux
+# .venv\Scripts\Activate.ps1       # Windows (PowerShell)
+pip install -r requirements.txt
+python app.py
+```
+
+The virtual environment (`.venv/`) is created automatically by the script. You only need to activate it and install packages — nothing is installed on your system.
+
+> The script checks what is installed and tells you what to install if anything is missing — it never installs anything automatically (the venv is a local folder, not a system installation).
 
 <details>
 <summary><strong>install — add the toolkit to an existing project</strong></summary>
