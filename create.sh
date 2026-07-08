@@ -96,23 +96,31 @@ fi
 
 echo ""
 
-# ── Step 3 — Hosting ──────────────────────────────────────────────────────────
+# ── Step 3 — Template ─────────────────────────────────────────────────────────
 
-echo -e "${BOLD}  Step 3 — Hosting${NC}"
+echo -e "${BOLD}  Step 3 — Template${NC}"
 echo ""
-echo "  How do you plan to host this integration?"
+echo "  Choose how you want to build this integration:"
 echo ""
-echo "    [1] GitHub Pages  — free static hosting, no server required"
-echo "    [2] Localhost     — local dev server (npx serve)"
-echo "    [3] Decide later  — just create the files"
+echo "    [1] Static page  — HTML/JS only. No server needed."
+echo "                       Host for free on GitHub Pages."
+echo ""
+echo "    [2] Node.js      — Adds an Express server so you can install"
+echo "                       npm packages and use external JS libraries."
+echo ""
+echo "    [3] Python       — Adds a FastAPI server so you can install"
+echo "                       pip packages and use external Python libraries."
+echo ""
+echo "  The Hello World frontend is the same for all options."
+echo "  The backend (Node.js / Python) is where you add your own logic."
 echo ""
 printf "  Choose [1/2/3]: "
-read -r HOSTING_CHOICE
+read -r TEMPLATE_CHOICE
 
-case "$HOSTING_CHOICE" in
-  1) HOSTING="github-pages" ;;
-  2) HOSTING="localhost" ;;
-  *) HOSTING="undecided" ;;
+case "$TEMPLATE_CHOICE" in
+  2) TEMPLATE="node" ;;
+  3) TEMPLATE="python" ;;
+  *) TEMPLATE="static" ;;
 esac
 
 echo ""
@@ -150,12 +158,12 @@ mkdir -p "$PROJECT_DIR"
 download "examples/hello-world/index.html" "$PROJECT_DIR/index.html" \
   && echo -e "  ${GREEN}✓${NC} index.html"
 
-# fieldtwin.config.json — reserved for future FuturOn tenant deployment
+# fieldtwin.config.json
 cat > "$PROJECT_DIR/fieldtwin.config.json" << EOF
 {
   "name": "$RAW_NAME",
   "version": "1.0.0",
-  "hosting": "$HOSTING"
+  "template": "$TEMPLATE"
 }
 EOF
 echo -e "  ${GREEN}✓${NC} fieldtwin.config.json"
@@ -165,22 +173,22 @@ cat > "$PROJECT_DIR/.gitignore" << 'EOF'
 node_modules/
 .env
 .env.local
+__pycache__/
+*.pyc
 EOF
 echo -e "  ${GREEN}✓${NC} .gitignore"
 
-# Hosting-specific files
-if [[ "$HOSTING" == "localhost" ]]; then
-  cat > "$PROJECT_DIR/package.json" << EOF
-{
-  "name": "$PROJECT_FOLDER",
-  "version": "1.0.0",
-  "scripts": {
-    "start": "npx serve ."
-  }
-}
-EOF
-  echo -e "  ${GREEN}✓${NC} package.json  (run: npm start)"
-fi
+# Backend files
+case "$TEMPLATE" in
+  node)
+    download "templates/node/server.js"    "$PROJECT_DIR/server.js"    && echo -e "  ${GREEN}✓${NC} server.js"
+    download "templates/node/package.json" "$PROJECT_DIR/package.json" && echo -e "  ${GREEN}✓${NC} package.json"
+    ;;
+  python)
+    download "templates/python/app.py"           "$PROJECT_DIR/app.py"           && echo -e "  ${GREEN}✓${NC} app.py"
+    download "templates/python/requirements.txt" "$PROJECT_DIR/requirements.txt" && echo -e "  ${GREEN}✓${NC} requirements.txt"
+    ;;
+esac
 
 # ── AI skill files ────────────────────────────────────────────────────────────
 
@@ -251,22 +259,30 @@ echo ""
 echo "  1. Open the project in your AI-enabled editor"
 echo ""
 
-if [[ "$HOSTING" == "localhost" ]]; then
-  echo "  2. Start the local server:"
-  echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && npm start${NC}"
-  echo ""
-  echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
-  echo "     Use http://localhost:3000 as the URL"
-elif [[ "$HOSTING" == "github-pages" ]]; then
-  echo "  2. Push to GitHub and enable GitHub Pages:"
-  echo "     Settings → Pages → Deploy from main"
-  echo ""
-  echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
-  echo "     Use your GitHub Pages URL"
-else
-  echo "  2. In FieldTwin: Admin → Integrations → Create New Tab"
-  echo "     Enter the URL where your integration is hosted"
-fi
+case "$TEMPLATE" in
+  node)
+    echo "  2. Install dependencies and start the server:"
+    echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && npm install && npm start${NC}"
+    echo ""
+    echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
+    echo "     Use http://localhost:3000 as the URL"
+    echo ""
+    echo "  4. Add your logic in server.js — install any npm package you need."
+    ;;
+  python)
+    echo "  2. Install dependencies and start the server:"
+    echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && pip install -r requirements.txt && python app.py${NC}"
+    echo ""
+    echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
+    echo "     Use http://localhost:3000 as the URL"
+    echo ""
+    echo "  4. Add your logic in app.py — install any pip package you need."
+    ;;
+  *)
+    echo "  2. In FieldTwin: Admin → Integrations → Create New Tab"
+    echo "     Use your hosted URL (e.g. GitHub Pages)."
+    ;;
+esac
 
 echo ""
 echo -e "  Open the integration in FieldTwin — you should see ${GREEN}Connected to FieldTwin!${NC}"
