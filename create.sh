@@ -226,6 +226,7 @@ node_modules/
 .env.local
 __pycache__/
 *.pyc
+.venv/
 EOF
 echo -e "  ${GREEN}✓${NC} .gitignore"
 
@@ -238,6 +239,8 @@ case "$TEMPLATE" in
   python)
     download "templates/python/app.py"           "$PROJECT_DIR/app.py"           && echo -e "  ${GREEN}✓${NC} app.py"
     download "templates/python/requirements.txt" "$PROJECT_DIR/requirements.txt" && echo -e "  ${GREEN}✓${NC} requirements.txt"
+    PY=$(command -v python3 || command -v python)
+    "$PY" -m venv "$PROJECT_DIR/.venv" && echo -e "  ${GREEN}✓${NC} .venv/  (virtual environment)"
     ;;
 esac
 
@@ -312,13 +315,18 @@ case "$TEMPLATE" in
     echo "  4. Add your logic in server.js — install any npm package you need."
     ;;
   python)
-    echo "  2. Install dependencies and start the server:"
-    echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && pip install -r requirements.txt && python app.py${NC}"
+    echo "  2. Activate the virtual environment and install dependencies:"
+    echo -e "     ${CYAN}cd \"$PROJECT_DIR\"${NC}"
+    echo -e "     ${CYAN}source .venv/bin/activate${NC}"
+    echo -e "     ${CYAN}pip install -r requirements.txt${NC}"
     echo ""
-    echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
+    echo "  3. Start the server:"
+    echo -e "     ${CYAN}python app.py${NC}"
+    echo ""
+    echo "  4. In FieldTwin: Admin → Integrations → Create New Tab"
     echo "     Use http://localhost:3000 as the URL"
     echo ""
-    echo "  4. Add your logic in app.py — install any pip package you need."
+    echo "  5. Add your logic in app.py — install any pip package you need."
     ;;
   *)
     echo "  2. In FieldTwin: Admin → Integrations → Create New Tab"

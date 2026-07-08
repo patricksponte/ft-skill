@@ -218,6 +218,7 @@ node_modules/
 .env.local
 __pycache__/
 *.pyc
+.venv/
 "@ | Set-Content "$ProjectDir\.gitignore" -Encoding UTF8
 Write-Host "  + .gitignore" -ForegroundColor Green
 
@@ -228,6 +229,9 @@ if ($Template -eq "node") {
 } elseif ($Template -eq "python") {
     if (Download-File "templates/python/app.py"           "$ProjectDir\app.py")           { Write-Host "  + app.py"           -ForegroundColor Green }
     if (Download-File "templates/python/requirements.txt" "$ProjectDir\requirements.txt") { Write-Host "  + requirements.txt" -ForegroundColor Green }
+    $py = if (Get-Command python3 -ErrorAction SilentlyContinue) { "python3" } else { "python" }
+    & $py -m venv "$ProjectDir\.venv" | Out-Null
+    Write-Host "  + .venv\  (virtual environment)" -ForegroundColor Green
 }
 
 # ── AI Agent Toolkit files ────────────────────────────────────────────────────────────
@@ -307,13 +311,18 @@ if ($Template -eq "node") {
     Write-Host ""
     Write-Host "  4. Add your logic in server.js — install any npm package you need."
 } elseif ($Template -eq "python") {
-    Write-Host "  2. Install dependencies and start the server:"
-    Write-Host "     cd `"$ProjectDir`" ; pip install -r requirements.txt ; python app.py" -ForegroundColor Cyan
+    Write-Host "  2. Activate the virtual environment and install dependencies:"
+    Write-Host "     cd `"$ProjectDir`"" -ForegroundColor Cyan
+    Write-Host "     .venv\Scripts\Activate.ps1" -ForegroundColor Cyan
+    Write-Host "     pip install -r requirements.txt" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "  3. In FieldTwin: Admin -> Integrations -> Create New Tab"
+    Write-Host "  3. Start the server:"
+    Write-Host "     python app.py" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "  4. In FieldTwin: Admin -> Integrations -> Create New Tab"
     Write-Host "     Use http://localhost:3000 as the URL"
     Write-Host ""
-    Write-Host "  4. Add your logic in app.py — install any pip package you need."
+    Write-Host "  5. Add your logic in app.py — install any pip package you need."
 } else {
     Write-Host "  2. In FieldTwin: Admin -> Integrations -> Create New Tab"
     Write-Host "     Use your hosted URL (e.g. GitHub Pages)."
