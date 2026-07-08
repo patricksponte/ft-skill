@@ -21,8 +21,22 @@ This toolkit gives your AI assistant complete knowledge of the FieldTwin integra
 
 ## Quick Start (5 minutes)
 
-1. **Pick your platform below** and add the toolkit — takes 2 minutes
-2. **Open the Hello World** (`examples/hello-world/index.html`) in FieldTwin as an integration — you should see "Connected!"
+**Starting a new integration from scratch?** Run the create script — it sets everything up for you:
+
+```bash
+# Linux / macOS
+curl -sSfL https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/YOUR_ORG/YOUR_REPO/main/create.ps1" -OutFile create.ps1; .\create.ps1
+```
+
+Then:
+
+1. **Pick your AI tool below** and add the agent context — takes 2 minutes
+2. **Open the Hello World** (`index.html`) in FieldTwin as an integration — you should see "Connected!"
 3. **Ask your AI:** `"I want to build a FieldTwin integration that shows a list of all assets in the current subproject."`
 
 ---
@@ -87,13 +101,25 @@ Your HTML file on GitHub  →  GitHub Pages serves it at https://your-org.github
 
 Chrome will now allow your FieldTwin session to load iFrames from `http://localhost`. This setting is saved for that FieldTwin URL.
 
-| Situation | Solution |
+**Solution C — ngrok** _(recommended for sharing with teammates or when Chrome override is blocked)_
+
+ngrok creates a temporary public HTTPS URL that tunnels directly to your local server — no deploy, no configuration.
+
+1. Install ngrok: [ngrok.com/download](https://ngrok.com/download)
+2. Start your local server (`npm start` or `python app.py`)
+3. In a new terminal: `ngrok http 3000`
+4. Copy the `https://....ngrok-free.app` URL and use it in FieldTwin.
+
+> Free tier: the URL changes every time you restart ngrok. Paid plans give you a fixed URL.
+
+| Situation | Recommended solution |
 |---|---|
 | Testing the Hello World | GitHub Pages — use the link in this repo |
 | Building a simple HTML/JS integration | GitHub Pages — push and share |
 | Developing locally with live reload | localhost + Chrome override |
 | Python/Node backend running locally | localhost + Chrome override |
-| Restricted corporate network (e.g. Petrobras) | GitHub Pages for the iFrame; your backend must be accessible from your machine |
+| Sharing work-in-progress with teammates | ngrok |
+| Restricted corporate network | GitHub Pages (frontend) + ngrok or cloud (backend) |
 | Deploying to production | GitHub Pages (frontend) + your cloud provider (backend) |
 
 </details>
@@ -1017,8 +1043,7 @@ There are two scripts depending on your situation:
 | `create` | Starting a new integration from scratch |
 | `install` | Adding the agent toolkit to a project that already exists |
 
-<details>
-<summary><strong>create — new integration from scratch</strong></summary>
+### create — new integration from scratch
 
 Run this script anywhere on your machine. It asks four questions and creates a ready-to-run integration project in the folder of your choice.
 
@@ -1058,9 +1083,7 @@ The Hello World frontend is the same regardless of the template chosen. The back
 | `app.py` + `requirements.txt` | Python only — run with `pip install -r requirements.txt && python app.py` |
 | Agent files | One file per selected AI tool, placed in the right location |
 
-**Prerequisites:** The script checks what is installed and tells you what to install if anything is missing — it never installs anything automatically.
-
-</details>
+> The script checks what is installed and tells you what to install if anything is missing — it never installs anything automatically.
 
 <details>
 <summary><strong>install — add the toolkit to an existing project</strong></summary>
