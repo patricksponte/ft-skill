@@ -250,6 +250,14 @@ else
 fi
 echo ""
 
+# ── Updater script ───────────────────────────────────────────────────────────
+
+if [[ ! -f "update.sh" ]]; then
+  download "update.sh" "update.sh" && chmod +x "update.sh" \
+    && echo -e "  ${GREEN}✓${NC} update.sh added — run ${CYAN}bash update.sh${NC} anytime to refresh agent files."
+fi
+echo ""
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 separator

@@ -201,6 +201,11 @@ if (Download-File "examples/hello-world/index.html" "$ProjectDir\index.html") {
     Write-Host "  + index.html" -ForegroundColor Green
 }
 
+# Updater script
+if (Download-File "update.ps1" "$ProjectDir\update.ps1") {
+    Write-Host "  + update.ps1  (run anytime to refresh agent files)" -ForegroundColor Green
+}
+
 # fieldtwin.config.json
 @"
 {

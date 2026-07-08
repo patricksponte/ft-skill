@@ -228,6 +228,15 @@ if (Ask "Set up for OpenCode?") {
 }
 Write-Host ""
 
+# ── Updater script ───────────────────────────────────────────────────────────
+
+if (-not (Test-Path "update.ps1")) {
+    if (Download-File "update.ps1" "update.ps1") {
+        Write-Host "  + update.ps1 added — run .\update.ps1 anytime to refresh agent files." -ForegroundColor Green
+    }
+}
+Write-Host ""
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 
 Separator

@@ -209,6 +209,11 @@ mkdir -p "$PROJECT_DIR"
 download "examples/hello-world/index.html" "$PROJECT_DIR/index.html" \
   && echo -e "  ${GREEN}✓${NC} index.html"
 
+# Updater script
+download "update.sh" "$PROJECT_DIR/update.sh" \
+  && chmod +x "$PROJECT_DIR/update.sh" \
+  && echo -e "  ${GREEN}✓${NC} update.sh  (run anytime to refresh agent files)"
+
 # fieldtwin.config.json
 cat > "$PROJECT_DIR/fieldtwin.config.json" << EOF
 {
