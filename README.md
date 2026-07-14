@@ -869,6 +869,8 @@ Cursor reads MCP servers from `~/.cursor/mcp.json` (global) or `.cursor/mcp.json
 
 Once configured, any model in Cursor (GPT-4o, Claude, Gemini, DeepSeek, etc.) will have access to the FieldTwin tools.
 
+</details>
+
 <details>
 <summary><strong>Setup — LM Studio</strong></summary>
 
@@ -893,6 +895,7 @@ LM Studio 0.3.17+ supports MCP via a shared `mcp.json` file (same format as Curs
   }
 }
 
+</details>
 
 <details>
 <summary><strong>Setup — Antigravity CLI</strong></summary>
