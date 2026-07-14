@@ -819,6 +819,17 @@ The MCP (Model Context Protocol) server gives any compatible AI client **direct 
 cd mcp-server && npm install
 ```
 
+**Environment variables** (set in the `env` block of your client's MCP config):
+
+| Variable | Required? | Purpose |
+|---|---|---|
+| `FIELDTWIN_BACKEND_URL` | Yes | Your FieldTwin backend URL |
+| `FIELDTWIN_API_TOKEN` | Yes | Your account-level API Token (Settings → API Tokens) |
+| `FIELDTWIN_SUBPROJECT_ID` | Optional | Default subproject used when a tool call omits `subProjectId` |
+| `FIELDTWIN_PROJECT_ID` | Optional | Default project used when a tool call omits `projectId` |
+
+`FIELDTWIN_SUBPROJECT_ID` and `FIELDTWIN_PROJECT_ID` save you from having to pass `subProjectId`/`projectId` on every tool call — useful if you mostly work inside a single project/subproject. If unset, the model must supply `projectId`/`subProjectId` explicitly as arguments on each call (it can look these up with `list_projects`). Most subproject-scoped tools (wells, connections, shapes, layers, custom costs, documents, metadata, etc.) require a real `projectId` — the FieldTwin API does not accept a wildcard here.
+
 ---
 
 <details>
@@ -835,7 +846,8 @@ Create or edit `.claude/settings.json` in your project directory. For a global s
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
-        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id",
+        "FIELDTWIN_PROJECT_ID": "optional-default-project-id"
       }
     }
   }
@@ -860,7 +872,8 @@ Cursor reads MCP servers from `~/.cursor/mcp.json` (global) or `.cursor/mcp.json
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
-        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id",
+        "FIELDTWIN_PROJECT_ID": "optional-default-project-id"
       }
     }
   }
@@ -889,7 +902,8 @@ LM Studio 0.3.17+ supports MCP via a shared `mcp.json` file (same format as Curs
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
-        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id",
+        "FIELDTWIN_PROJECT_ID": "optional-default-project-id"
       }
     }
   }
@@ -912,7 +926,8 @@ Create `.agents/mcp_config.json` in your project root for a workspace-specific s
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
-        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id",
+        "FIELDTWIN_PROJECT_ID": "optional-default-project-id"
       }
     }
   }
@@ -939,7 +954,8 @@ Run `agy` in your project folder. Type `/mcp` inside the session to verify the `
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
-        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id",
+        "FIELDTWIN_PROJECT_ID": "optional-default-project-id"
       }
     }
   }
@@ -966,7 +982,8 @@ Edit `~/.continue/config.json` and add an `mcpServers` block:
       "env": {
         "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
         "FIELDTWIN_API_TOKEN": "your-api-token-here",
-        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id",
+        "FIELDTWIN_PROJECT_ID": "optional-default-project-id"
       }
     }
   ]
