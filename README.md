@@ -894,6 +894,7 @@ LM Studio 0.3.17+ supports MCP via a shared `mcp.json` file (same format as Curs
     }
   }
 }
+```
 
 </details>
 
