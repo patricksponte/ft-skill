@@ -869,21 +869,29 @@ Cursor reads MCP servers from `~/.cursor/mcp.json` (global) or `.cursor/mcp.json
 
 Once configured, any model in Cursor (GPT-4o, Claude, Gemini, DeepSeek, etc.) will have access to the FieldTwin tools.
 
-</details>
-
 <details>
 <summary><strong>Setup — LM Studio</strong></summary>
 
-LM Studio 0.3.5+ supports MCP natively.
+LM Studio 0.3.17+ supports MCP via a shared `mcp.json` file (same format as Cursor).
 
-1. Open LM Studio → click the **Developer** tab (or plug icon in the sidebar).
-2. Select **MCP Servers → Add server**.
-3. Fill in:
-   - **Name:** `fieldtwin`
-   - **Command:** `node`
-   - **Args:** `/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js`
-   - **Environment variables:** `FIELDTWIN_BACKEND_URL`, `FIELDTWIN_API_TOKEN`, `FIELDTWIN_SUBPROJECT_ID`
-4. Click **Save**. The server starts automatically when you open a chat.
+1. Open LM Studio → click the **Program** tab in the right-hand sidebar.
+2. Click **Install → Edit mcp.json**. This opens LM Studio's in-app JSON editor, pointing at `~/.lmstudio/mcp.json` (Windows: `%USERPROFILE%\.lmstudio\mcp.json`).
+3. Add the `fieldtwin` entry:
+
+```json
+{
+  "mcpServers": {
+    "fieldtwin": {
+      "command": "node",
+      "args": ["/absolute/path/to/fieldtwin-ai-agent-toolkit/mcp-server/index.js"],
+      "env": {
+        "FIELDTWIN_BACKEND_URL": "https://backend.fieldtwin.com",
+        "FIELDTWIN_API_TOKEN": "your-api-token-here",
+        "FIELDTWIN_SUBPROJECT_ID": "optional-default-subproject-id"
+      }
+    }
+  }
+}
 
 </details>
 
