@@ -4,6 +4,8 @@
 # Only updates files that already exist — never overwrites your own code.
 
 REPO_BASE="https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+ARCHIVE_URL="https://codeload.github.com/patricksponte/ft-skill/tar.gz/refs/heads/main"
+SKILLS=(create-fieldtwin-integration develop-fieldtwin-integration)
 
 exec < /dev/tty  # allow input when piped via curl | bash
 
@@ -15,6 +17,27 @@ DIM='\033[2m'
 NC='\033[0m'
 
 separator() { echo -e "${DIM}  ──────────────────────────────────────────────────────${NC}"; }
+
+# Install the canonical Agent Skills (skills/<name>/SKILL.md + references) into a directory.
+install_skills() {
+  local dest="$1" tmp root skill
+  tmp="$(mktemp -d)" || return 1
+  if command -v curl &>/dev/null; then
+    curl -sSfL "$ARCHIVE_URL" | tar -xz -C "$tmp"
+  else
+    wget -qO- "$ARCHIVE_URL" | tar -xz -C "$tmp"
+  fi || { rm -rf "$tmp"; echo -e "  ${RED}Download failed: skills archive${NC}"; return 1; }
+  root="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -1)"
+  mkdir -p "$dest"
+  for skill in "${SKILLS[@]}"; do
+    if [[ ! -f "$root/skills/$skill/SKILL.md" ]]; then
+      rm -rf "$tmp"; echo -e "  ${RED}Skill missing from archive: $skill${NC}"; return 1
+    fi
+    rm -rf "${dest:?}/$skill"
+    cp -R "$root/skills/$skill" "$dest/$skill"
+  done
+  rm -rf "$tmp"
+}
 
 download() {
   local src="$1" dst="$2"
@@ -69,6 +92,19 @@ for entry in "${FILES[@]}"; do
   else
     echo -e "  ${DIM}—  $local  (not in this project, skipped)${NC}"
     skipped=$((skipped + 1))
+  fi
+done
+
+# Installed Agent Skills are refreshed as whole directories.
+for skills_dir in .claude/skills .agents/skills; do
+  if [[ -f "$skills_dir/develop-fieldtwin-integration/SKILL.md" || -f "$skills_dir/create-fieldtwin-integration/SKILL.md" ]]; then
+    if install_skills "$skills_dir"; then
+      echo -e "  ${GREEN}✓${NC} $skills_dir/ (${SKILLS[*]})"
+      updated=$((updated + 1))
+    else
+      echo -e "  ${RED}✗${NC} $skills_dir/  (download failed)"
+      failed=$((failed + 1))
+    fi
   fi
 done
 

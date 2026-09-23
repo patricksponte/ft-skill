@@ -5,7 +5,10 @@
 # Usage: Right-click this file and choose "Run with PowerShell"
 #        or run from a terminal: .\install.ps1
 
-$RepoBase = "https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+$RepoBase   = "https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+$ArchiveUrl = "https://codeload.github.com/patricksponte/ft-skill/zip/refs/heads/main"
+$Skills     = @("create-fieldtwin-integration", "develop-fieldtwin-integration")
+$HelloWorld = "skills/create-fieldtwin-integration/assets/hello-world/index.html"
 
 $installed = @()
 $skipped   = @()
@@ -39,6 +42,32 @@ function Guard($file) {
 
 function Separator { Write-Host "  $('─' * 54)" -ForegroundColor DarkGray }
 
+# Install the canonical Agent Skills (skills\<name>\SKILL.md + references) into a directory.
+function Install-Skills($dest) {
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("ft-skill-" + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $tmp | Out-Null
+    try {
+        $zip = Join-Path $tmp "skills.zip"
+        Invoke-WebRequest -Uri $ArchiveUrl -OutFile $zip -UseBasicParsing -ErrorAction Stop
+        Expand-Archive -Path $zip -DestinationPath $tmp -Force
+        $root = Get-ChildItem -Path $tmp -Directory | Select-Object -First 1
+        if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+        foreach ($skill in $Skills) {
+            $src = Join-Path $root.FullName "skills\$skill"
+            if (-not (Test-Path (Join-Path $src "SKILL.md"))) { throw "Skill missing from archive: $skill" }
+            $target = Join-Path $dest $skill
+            if (Test-Path $target) { Remove-Item -Recurse -Force $target }
+            Copy-Item -Recurse -Path $src -Destination $target
+        }
+        return $true
+    } catch {
+        Write-Host "  [ERROR] Skills download failed: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    } finally {
+        Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    }
+}
+
 # ── Header ────────────────────────────────────────────────────────────────────
 
 Write-Host ""
@@ -57,21 +86,19 @@ Write-Host ""
 
 Write-Host "  [1/7] Claude Code" -ForegroundColor White
 Write-Host ""
-Write-Host "  Registers a /fieldtwin slash command in Claude Code and places"
+Write-Host "  Installs the FieldTwin Agent Skills. Claude Code loads them"
 Write-Host "  the full API reference where the command can read it."
 Write-Host ""
 Write-Host "  Files that will be created:" -ForegroundColor DarkGray
-Write-Host "    .claude\skills\fieldtwin.md        <- /fieldtwin slash command"
-Write-Host "    .claude\fieldtwin-instructions.md  <- complete agent reference"
-Write-Host "    .claude\api-reference.json         <- all 120+ REST endpoints"
+Write-Host "    .claude\skills\create-fieldtwin-integration\   <- scaffold, Hello World, hosting"
+Write-Host "    .claude\skills\develop-fieldtwin-integration\  <- bridge, messages, API catalogs"
 Write-Host ""
 if (Ask "Set up for Claude Code?") {
-    $ok = Guard ".claude\skills\fieldtwin.md"
-    if ($ok) { $ok = Download-File "platforms/claude-code.md"  ".claude\skills\fieldtwin.md" }
-    if ($ok) { $ok = Download-File "fieldtwin-instructions.md"       ".claude\fieldtwin-instructions.md" }
-    if ($ok) { $ok = Download-File "api-reference.json"              ".claude\api-reference.json" }
+    $ok = $true
+    foreach ($skill in $Skills) { if ($ok) { $ok = Guard ".claude\skills\$skill\SKILL.md" } }
+    if ($ok) { $ok = Install-Skills ".claude\skills" }
     if ($ok) {
-        Write-Host "  Done. Type /fieldtwin in Claude Code to activate the toolkit." -ForegroundColor Green
+        Write-Host "  Done. Ask Claude Code about your FieldTwin integration; the skills load on demand." -ForegroundColor Green
         $installed += "Claude Code"
     }
 } else {
@@ -215,7 +242,7 @@ if (Ask "Set up for OpenCode?") {
         if (Ask "Also create .opencode.json with instructions + MCP config?") {
             if (Guard ".opencode.json") {
                 if (Download-File "platforms/opencode.json" ".opencode.json") {
-                    Write-Host "  Edit .opencode.json: set the absolute path to mcp-server/index.js and your API token." -ForegroundColor Yellow
+                    Write-Host "  Edit .opencode.json: set the absolute path to packages/fieldtwin-mcp/index.js and your API token." -ForegroundColor Yellow
                 }
             }
         }

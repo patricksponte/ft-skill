@@ -4,7 +4,10 @@
 #
 # Usage: .\create.ps1
 
-$RepoBase = "https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+$RepoBase   = "https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+$ArchiveUrl = "https://codeload.github.com/patricksponte/ft-skill/zip/refs/heads/main"
+$Skills     = @("create-fieldtwin-integration", "develop-fieldtwin-integration")
+$HelloWorld = "skills/create-fieldtwin-integration/assets/hello-world/index.html"
 
 $installed = @()
 
@@ -28,6 +31,32 @@ function Ask($prompt) {
 }
 
 function Separator { Write-Host "  $('─' * 54)" -ForegroundColor DarkGray }
+
+# Install the canonical Agent Skills (skills\<name>\SKILL.md + references) into a directory.
+function Install-Skills($dest) {
+    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("ft-skill-" + [guid]::NewGuid())
+    New-Item -ItemType Directory -Path $tmp | Out-Null
+    try {
+        $zip = Join-Path $tmp "skills.zip"
+        Invoke-WebRequest -Uri $ArchiveUrl -OutFile $zip -UseBasicParsing -ErrorAction Stop
+        Expand-Archive -Path $zip -DestinationPath $tmp -Force
+        $root = Get-ChildItem -Path $tmp -Directory | Select-Object -First 1
+        if (-not (Test-Path $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
+        foreach ($skill in $Skills) {
+            $src = Join-Path $root.FullName "skills\$skill"
+            if (-not (Test-Path (Join-Path $src "SKILL.md"))) { throw "Skill missing from archive: $skill" }
+            $target = Join-Path $dest $skill
+            if (Test-Path $target) { Remove-Item -Recurse -Force $target }
+            Copy-Item -Recurse -Path $src -Destination $target
+        }
+        return $true
+    } catch {
+        Write-Host "  [ERROR] Skills download failed: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    } finally {
+        Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    }
+}
 
 # ── Prerequisite check — download tool ───────────────────────────────────────
 
@@ -167,9 +196,36 @@ if ($Template -eq "python") {
 
 Write-Host ""
 
-# ── Step 3 — AI tools ─────────────────────────────────────────────────────────
+# ── Step 4 — FieldTwin address ────────────────────────────────────────────────
 
-Write-Host "  Step 4 — AI tools" -ForegroundColor White
+Write-Host "  Step 4 — FieldTwin address" -ForegroundColor White
+Write-Host ""
+Write-Host "  The integration only accepts messages from your exact FieldTwin origin."
+Write-Host "  Copy it from the browser address bar while FieldTwin is open."
+Write-Host "  Example: https://yourcompany.fieldtwin.com   (Enter to set it later)" -ForegroundColor DarkGray
+Write-Host ""
+$FieldTwinOrigin = ""
+while ($true) {
+    $inputOrigin = Read-Host "  FieldTwin address"
+    if ([string]::IsNullOrWhiteSpace($inputOrigin)) {
+        Write-Host "  Skipped. Edit ALLOWED_FIELDTWIN_ORIGINS in index.html before opening it in FieldTwin." -ForegroundColor Yellow
+        break
+    }
+    # Keep only scheme://host[:port]; drop any path or query. Only https is accepted.
+    $candidate = $inputOrigin.Trim() -replace '^(https://[^/?]+).*$', '$1'
+    if ($candidate -match '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?$') {
+        $FieldTwinOrigin = $candidate
+        Write-Host "  Allowed origin: $FieldTwinOrigin" -ForegroundColor Green
+        break
+    }
+    Write-Host "  Use an https:// address such as https://yourcompany.fieldtwin.com" -ForegroundColor Red
+}
+
+Write-Host ""
+
+# ── Step 5 — AI tools ─────────────────────────────────────────────────────────
+
+Write-Host "  Step 5 — AI tools" -ForegroundColor White
 Write-Host ""
 Write-Host "  Which AI tools do you use? agent files will be placed"
 Write-Host "  in the right location for each one."
@@ -196,9 +252,17 @@ Write-Host ""
 
 New-Item -ItemType Directory -Path $ProjectDir -Force | Out-Null
 
-# Hello World
-if (Download-File "examples/hello-world/index.html" "$ProjectDir\index.html") {
-    Write-Host "  + index.html" -ForegroundColor Green
+# Hello World — a static page is served from the project root; the Node/Python servers serve public\ only
+$Page = if ($Template -eq "static") { "index.html" } else { "public\index.html" }
+$PagePath = Join-Path $ProjectDir $Page
+if (Download-File $HelloWorld $PagePath) {
+    if ($FieldTwinOrigin) {
+        # Read and write UTF-8 explicitly: Windows PowerShell 5.1 would otherwise mangle non-ASCII text.
+        $content = [System.IO.File]::ReadAllText($PagePath, [System.Text.Encoding]::UTF8)
+        $content = $content.Replace("      'https://fieldtwin.example',", "      '$FieldTwinOrigin',")
+        [System.IO.File]::WriteAllText($PagePath, $content, (New-Object System.Text.UTF8Encoding($false)))
+    }
+    Write-Host "  + $Page" -ForegroundColor Green
 }
 
 # Updater script
@@ -224,8 +288,16 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+.claude/settings.local.json
 "@ | Set-Content "$ProjectDir\.gitignore" -Encoding UTF8
 Write-Host "  + .gitignore" -ForegroundColor Green
+
+# Server environment example (origins for CSP frame-ancestors)
+if ($Template -ne "static") {
+    $exampleOrigin = if ($FieldTwinOrigin) { $FieldTwinOrigin } else { "https://yourcompany.fieldtwin.com" }
+    "FIELDTWIN_ORIGINS=$exampleOrigin" | Set-Content "$ProjectDir\.env.example" -Encoding ASCII
+    Write-Host "  + .env.example" -ForegroundColor Green
+}
 
 # Backend files
 if ($Template -eq "node") {
@@ -249,10 +321,9 @@ if ($AiTools.Count -gt 0) {
     foreach ($tool in $AiTools) {
         switch ($tool) {
             "claude-code" {
-                $ok = Download-File "platforms/claude-code.md"  "$ProjectDir\.claude\skills\fieldtwin.md"
-                $ok = $ok -and (Download-File "fieldtwin-instructions.md" "$ProjectDir\.claude\fieldtwin-instructions.md")
-                $ok = $ok -and (Download-File "api-reference.json"        "$ProjectDir\.claude\api-reference.json")
-                if ($ok) { Write-Host "  + Claude Code  (.claude\)" -ForegroundColor Green }
+                if (Install-Skills "$ProjectDir\.claude\skills") {
+                    Write-Host "  + Claude Code  (.claude\skills\: $($Skills -join ', '))" -ForegroundColor Green
+                }
             }
             "copilot" {
                 if (Download-File "platforms/copilot-instructions.md" "$ProjectDir\.github\copilot-instructions.md") {
@@ -284,7 +355,7 @@ if ($AiTools.Count -gt 0) {
                 $ok = $ok -and (Download-File "platforms/opencode.json" "$ProjectDir\.opencode.json")
                 if ($ok) {
                     Write-Host "  + OpenCode  (.opencode\)" -ForegroundColor Green
-                    Write-Host "    -> Edit .opencode.json: set mcp-server path and API token" -ForegroundColor Yellow
+                    Write-Host "    -> Edit .opencode.json: set the packages/fieldtwin-mcp path and API token" -ForegroundColor Yellow
                 }
             }
         }
@@ -302,6 +373,7 @@ Write-Host ""
 Write-Host "  Location: " -NoNewline
 Write-Host $ProjectDir -ForegroundColor Cyan
 Write-Host ""
+$ShownOrigin = if ($FieldTwinOrigin) { $FieldTwinOrigin } else { "<your-fieldtwin-origin>" }
 Write-Host "  Next steps:"
 Write-Host ""
 Write-Host "  1. Open the project in your AI-enabled editor"
@@ -309,12 +381,12 @@ Write-Host ""
 
 if ($Template -eq "node") {
     Write-Host "  2. Install dependencies and start the server:"
-    Write-Host "     cd `"$ProjectDir`" ; npm install ; npm start" -ForegroundColor Cyan
+    Write-Host "     cd `"$ProjectDir`" ; npm install ; `$env:FIELDTWIN_ORIGINS='$ShownOrigin' ; npm start" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  3. In FieldTwin: Admin -> Integrations -> Create New Tab"
     Write-Host "     Use http://localhost:3000 as the URL"
     Write-Host ""
-    Write-Host "  4. Add your logic in server.js — install any npm package you need."
+    Write-Host "  4. Add your logic in server.js; the page lives in public\index.html."
 } elseif ($Template -eq "python") {
     Write-Host "  2. Activate the virtual environment and install dependencies:"
     Write-Host "     cd `"$ProjectDir`"" -ForegroundColor Cyan
@@ -322,15 +394,22 @@ if ($Template -eq "node") {
     Write-Host "     pip install -r requirements.txt" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  3. Start the server:"
-    Write-Host "     python app.py" -ForegroundColor Cyan
+    Write-Host "     `$env:FIELDTWIN_ORIGINS='$ShownOrigin' ; python app.py" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  4. In FieldTwin: Admin -> Integrations -> Create New Tab"
     Write-Host "     Use http://localhost:3000 as the URL"
     Write-Host ""
-    Write-Host "  5. Add your logic in app.py — install any pip package you need."
+    Write-Host "  5. Add your logic in app.py; the page lives in public\index.html."
 } else {
-    Write-Host "  2. In FieldTwin: Admin -> Integrations -> Create New Tab"
-    Write-Host "     Use your hosted URL (e.g. GitHub Pages)."
+    Write-Host "  2. Host index.html over HTTPS (for example GitHub Pages), then"
+    Write-Host "     in FieldTwin: Admin -> Integrations -> Create New Tab with that URL."
+}
+
+Write-Host ""
+Write-Host "  In the FieldTwin tab settings, enable 'Use GET verb' and"
+Write-Host "  'Do not pass arguments in URL'. Grant only the access you need."
+if (-not $FieldTwinOrigin) {
+    Write-Host "  Remember: set ALLOWED_FIELDTWIN_ORIGINS in $Page to your FieldTwin address." -ForegroundColor Yellow
 }
 
 Write-Host ""
