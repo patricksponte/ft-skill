@@ -1,0 +1,53 @@
+{
+  "skill_name": "create-fieldtwin-integration",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Turn my SvelteKit FieldTwin prototype into a deployable integration repository using Docker, Helm, Environment Modules, Tilt, devops.sh, and build-pipeline.js.",
+      "expected_output": "A complete single-path repository scaffold with a program-qualified image name, module-driven Helm values, npm start using Tilt, an external secrets boundary, and validation commands.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "My local integration pod fails because a shared ConfigMap and Secret do not exist, and a worker starts even though local development has no database or credential-vault bootstrap. Fix the deployment architecture.",
+      "expected_output": "Direct non-secret Helm environment values, no unnecessary ConfigMap, local worker disablement covering all worker resources, no dangling Secret reference, deployment-bootstrap-only credential wiring when enabled, and local/dev render tests.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Review a FieldTwin integration whose build bot component and Docker image are both named main. Keep build-bot compatibility while making registry names unambiguous.",
+      "expected_output": "A stable main component mapped consistently to a program-qualified OCI repository across Tilt, devops.sh, Helm, docs, and validation.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Scaffold provider setup for a multi-account FieldTwin deployment integration. Account admins configure GitHub in Account Settings, users connect their normal GitHub identity, watched repositories trigger through normal GitHub webhooks, and unwatch/disconnect must clean those hooks up. Reloads must reveal no secret and an unchanged secret must be a persistence no-op.",
+      "expected_output": "An authenticated Account Settings DTO containing the full safe-to-display account webhook URL but no separate raw route key; omitted/exactly-empty preservation and whitespace-only rejection; opaque byte-preserving constant-time unchanged-secret comparison with no trimming, case-folding, or Unicode normalization; revisioned no-op persistence; vault-only provider/user credentials; a standard GitHub OAuth App state/S256-PKCE flow; bounded admin-capable repository discovery; lifecycle-adequate admin:repo_hook or repo scope; create/reconcile/rotate/delete handling; and account-scoped X-Hub-Signature-256 raw-body HMAC verification.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Add GitLab.com and approved self-managed GitLab support to the FieldTwin provider scaffold. Users must authorize repository reads and project-hook management, token refresh cannot corrupt a connection, and older self-managed instances may only support X-Gitlab-Token. Include watch, rotation, unwatch, and disconnect behavior.",
+      "expected_output": "An exact deployment-allowlisted HTTPS GitLab origin with origin-pinned OAuth/API endpoints; one-time state and S256 PKCE; verified api plus read_repository scopes; a vaulted access/refresh-token bundle with single-flight atomic refresh; bounded membership project discovery at Maintainer or Owner; idempotent project-hook reconciliation and cleanup; an explicit persisted gitlab-standard-webhooks-v1 profile for Standard Webhooks HMAC/timestamp/replay verification or versioned legacy X-Gitlab-Token profile with no header-driven downgrade; safe account-keyed URL routing that is not authentication; and retryable partial-cleanup handling.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Scaffold the production HTTP-header policy for a FieldTwin integration that can stay embedded or be popped out. Our security middleware defaults to COOP same-origin, the ingress adds X-Frame-Options, and an old chart sets X-IFrame-Allow. Include deployment-level tests.",
+      "expected_output": "A server and ingress contract with exact HTTPS CSP frame-ancestors, no blocking X-Frame-Options, integration-document COOP absent or unsafe-none, no incompatible COOP/COEP cross-origin isolation, no reliance on non-standard X-IFrame-Allow or X-Frame-Allow, final-response assertions after every proxy layer, and a real FieldTwin iframe-plus-pop-out browser test proving opener retention and bidirectional messaging.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I want a quick FieldTwin integration that shows the selected asset's attributes in the property panel. Keep it simple, I just want to drop it on our static web host.",
+      "expected_output": "The single-page shape recommended and confirmed with the user before any file is created, then one self-contained index.html plus a static manifest.json using useGET and noURLParams, an in-memory JWT, exact origin and source pinning, no npm, Docker, Helm, or Tilt, and a note on what would force promotion to a full repository.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Build me a single index.html FieldTwin integration. It needs to store our Jira API token so the backend can create issues from a webhook.",
+      "expected_output": "The full-repository shape recommended instead, with the reason stated plainly: a server-side secret, a vault boundary, and an inbound webhook cannot live in a static file. The user is asked to confirm, and the repository scaffold follows only after that.",
+      "files": []
+    }
+  ]
+}
