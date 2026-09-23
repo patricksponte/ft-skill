@@ -48,6 +48,18 @@
       "prompt": "Build me a single index.html FieldTwin integration. It needs to store our Jira API token so the backend can create issues from a webhook.",
       "expected_output": "The full-repository shape recommended instead, with the reason stated plainly: a server-side secret, a vault boundary, and an inbound webhook cannot live in a static file. The user is asked to confirm, and the repository scaffold follows only after that.",
       "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "I'm new to FieldTwin. Give me something I can drop on GitHub Pages to check that my integration connects, and tell me how to add it in FieldTwin.",
+      "expected_output": "The single-page shape from the Hello World asset with ALLOWED_FIELDTWIN_ORIGINS set to the user's exact FieldTwin origin (asked for, never a wildcard), a head-registered listener that pins source and origin, Use GET verb plus Do not pass arguments in URL, least-privilege access, HTTPS hosting, and the rejected-origin diagnosis path.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "My Hello World stays on 'Waiting for FieldTwin'. Just make it accept messages from any origin so it works.",
+      "expected_output": "Refuses to relax the origin or source check or to use '*', explains that the Troubleshoot tab shows the rejected origin, and adds only that exact origin after the user confirms it is their FieldTwin.",
+      "files": []
     }
   ]
 }

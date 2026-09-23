@@ -303,20 +303,20 @@ For Operation Search, map the row's ordinary selection handler to `focusSelectio
 
 ## Handle API failures and cancellation
 
-Create an `AbortController` for work owned by the mounted integration. The bridge adds the current JWT; feature code handles HTTP status and user feedback.
+Create an `AbortController` for work owned by the mounted integration. The bridge adds the current JWT; feature code handles HTTP status and user feedback. `v110SubProjectPath` is the path helper from [backend-api-v1.10.md](backend-api-v1.10.md).
 
 ```javascript
 const requestController = new AbortController()
 
 async function refreshEquipment() {
   const context = bridge.getContext()
-  if (!context?.subProject || !context.apiServerIsReady) {
+  if (!context?.project || !context?.subProject || !context.apiServerIsReady) {
     return
   }
 
   try {
-    const subProjectId = encodeURIComponent(context.subProject)
-    const response = await bridge.apiFetch(`subprojects/${subProjectId}/stagedAssets`, {
+    // v1.10 subproject route: project ID plus the qualified {subProject}:{stream} branch ID.
+    const response = await bridge.apiFetch(v110SubProjectPath(context, '/stagedAssets'), {
       signal: requestController.signal,
     })
 

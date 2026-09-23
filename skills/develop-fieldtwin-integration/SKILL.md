@@ -4,7 +4,7 @@ description: Develop, run, debug, test, and review FieldTwin external integratio
 license: ISC
 metadata:
   author: FutureOn AS
-  version: "0.6.0"
+  version: "0.9.0"
 ---
 
 # Develop FieldTwin Integrations

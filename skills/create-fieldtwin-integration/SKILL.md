@@ -4,7 +4,7 @@ description: Create and scaffold a FieldTwin external integration, either as a s
 license: ISC
 metadata:
   author: FutureOn AS
-  version: "0.4.0"
+  version: "0.9.0"
 ---
 
 # Create FieldTwin Integrations
@@ -57,6 +57,11 @@ in-memory JWT, `tokenRefresh`, exact message shapes, and teardown. Sections 1-7 
   optional.
 - Register the message listener in the first inline script in `<head>`, before the body, so the
   one-shot `loaded` event cannot arrive before the listener exists.
+- For a first integration or a connection check, start from
+  [assets/hello-world/index.html](assets/hello-world/index.html): set its exact
+  `ALLOWED_FIELDTWIN_ORIGINS`, then replace its content with the feature. Read
+  [references/quick-start-and-hosting.md](references/quick-start-and-hosting.md) for FieldTwin
+  registration, hosting choices, and connection diagnosis.
 
 Sections 1-7 describe the full-repository shape. Read
 [references/repository-and-deployment.md](references/repository-and-deployment.md) before editing

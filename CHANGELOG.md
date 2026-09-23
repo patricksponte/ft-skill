@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.0 - 2026-09-23
+
+Merge of the FieldTwin AI Agent Toolkit (`patricksponte/ft-skill`) into this package.
+
+- `create-fieldtwin-integration` ships a Hello World asset built on the secure bridge: exact
+  origin allowlist, pinned parent or opener, in-memory JWT with `tokenRefresh`, qualified
+  subproject API reads, and a troubleshooter that reports the origin of a rejected `loaded` so the
+  user can allowlist it without weakening the check.
+- Added `references/quick-start-and-hosting.md` for FieldTwin tab registration (`useGET`,
+  `noURLParams`, least access), static, local, and tunnel hosting, and connection diagnosis.
+- Fixed the `develop-fieldtwin-integration` cancellation recipe, which built
+  `subprojects/{id}/stagedAssets` without the project ID. It now uses the v1.10 project and
+  qualified subproject path.
+- Added evaluation cases for the Hello World flow and for refusing wildcard origins.
+- Outside the skills: single-file guides for tools without Agent Skills support, generated
+  `platforms/` instruction files and `api-reference.json`, Node and Python templates that serve
+  only `public/` and set `frame-ancestors`, installers that install the skills, and the optional
+  `packages/fieldtwin-mcp` server. The skills remain documentation only.
+
 ## 0.8.0 - 2026-09-18
 
 - `updateTagStyles` rules now require a `category`. Users enable or disable whole categories from the
