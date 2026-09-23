@@ -881,7 +881,9 @@ const ALLOWED_FIELDTWIN_ORIGINS = [
 ]
 ```
 
-**Host it** over HTTPS, for example with GitHub Pages. For local development and tunnels, see
+**Host it** over HTTPS, for example with GitHub Pages. The repository root `index.html` is a
+generated copy of the same page for a root-level Pages site; a hosted copy still connects only to
+the origins in its own `ALLOWED_FIELDTWIN_ORIGINS`, so publish your own configured copy. For local development and tunnels, see
 [quick-start-and-hosting.md](skills/create-fieldtwin-integration/references/quick-start-and-hosting.md).
 
 **Add it to FieldTwin:**
@@ -919,6 +921,7 @@ ft-skill/
 ├── fieldtwin-instructions.md                 ← single-file guide for tools without skills
 ├── api-quick-reference.md                    ← compact guide for small context windows
 ├── api-reference.json                        ← generated: all v1.10 routes
+├── index.html                                ← generated: copy of the Hello World for a root Pages site
 ├── platforms/                                ← generated: per-tool copies of the guides
 │
 ├── packages/fieldtwin-mcp/                   ← optional MCP server (separate package)
@@ -990,7 +993,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md). Before opening a change:
 ```bash
 python3 scripts/validate_package.py            # skills contract, links, and public-safety rules
 python3 scripts/build-api-reference.py --check # api-reference.json matches the v1.10 catalog
-python3 scripts/build-platform-files.py --check # platforms/* match the guides
+python3 scripts/build-platform-files.py --check # platforms/* and index.html match their sources
 node --check packages/fieldtwin-mcp/index.js
 ```
 

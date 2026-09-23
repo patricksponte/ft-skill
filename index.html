@@ -4,6 +4,184 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FieldTwin Hello World</title>
+  <script>
+    // =====================================================================
+    // 1. CONFIGURE THIS: the exact address of your FieldTwin environment.
+    //    Copy it from the browser address bar while FieldTwin is open:
+    //    scheme + host (+ port), no path and no trailing slash.
+    //    If you are unsure, load the page in FieldTwin once: the
+    //    Troubleshoot tab shows the origin that tried to connect.
+    // =====================================================================
+    const ALLOWED_FIELDTWIN_ORIGINS = [
+      'https://fieldtwin.example',
+    ]
+
+    // Only for a FieldTwin that itself runs on local http:// (rare). Never in production.
+    const ALLOW_LOCAL_HTTP_FIELDTWIN = false
+
+    // ---------------------------------------------------------------------
+    // Secure FieldTwin bridge. It runs in <head> so it is listening before
+    // FieldTwin sends the one-time `loaded` message. It accepts `loaded` only
+    // from an allowlisted origin and the real host window (iframe parent or
+    // pop-out opener), then pins both and sends only to them. The JWT stays
+    // inside this closure and is never shown or stored.
+    // ---------------------------------------------------------------------
+    const PLACEHOLDER_ORIGIN = 'https://fieldtwin.example'
+
+    function createFieldTwinBridge({ allowedOrigins, allowHttp, onReady, onEvent, onRejected }) {
+      const allowed = new Set()
+      for (const origin of allowedOrigins) {
+        try {
+          const url = new URL(origin)
+          const schemeOk = url.protocol === 'https:' || (allowHttp && url.protocol === 'http:')
+          if (url.origin === origin && schemeOk) allowed.add(url.origin)
+          else onRejected({ reason: 'bad-allowlist-entry', origin })
+        } catch {
+          onRejected({ reason: 'bad-allowlist-entry', origin })
+        }
+      }
+
+      let hostWindow = null
+      let hostOrigin = null
+      let state = null
+      let disposed = false
+
+      function expectedHostWindow() {
+        if (window.parent !== window) return window.parent
+        return window.opener && !window.opener.closed ? window.opener : null
+      }
+
+      function readLoaded(message) {
+        if (typeof message.token !== 'string' || !message.token) return null
+        let backendBaseUrl
+        if (message.backendUrl !== undefined) {
+          let url
+          try { url = new URL(message.backendUrl) } catch { return null }
+          const schemeOk = url.protocol === 'https:' || (allowHttp && url.protocol === 'http:')
+          if (!schemeOk || url.username || url.password || url.search || url.hash) return null
+          backendBaseUrl = url.href.replace(/\/$/, '')
+        }
+        const apiVersion = message.APIVersion
+        if (apiVersion !== undefined && !/^v\d+(?:\.\d+)*$/.test(apiVersion)) return null
+        return {
+          token: message.token,
+          backendBaseUrl,
+          apiVersion,
+          project: message.project,
+          subProject: message.subProject,
+          stream: message.stream,
+          customTabId: message.customTabId,
+          canEdit: message.canEdit === true,
+          apiServerIsReady: message.APIServerIsReady === true,
+        }
+      }
+
+      function context() {
+        if (!state) return null
+        const { token, ...safe } = state
+        return { ...safe, hasToken: Boolean(token), hostOrigin, layout: hostWindow === window.opener ? 'pop-out' : 'iframe' }
+      }
+
+      function receive(event) {
+        const message = event.data
+        if (disposed || !message || typeof message !== 'object' || typeof message.event !== 'string') return
+
+        if (!hostWindow) {
+          if (message.event !== 'loaded') return
+          const expected = expectedHostWindow()
+          if (!expected || event.source !== expected) {
+            onRejected({ reason: 'wrong-window', origin: event.origin })
+            return
+          }
+          if (!allowed.has(event.origin)) {
+            onRejected({ reason: 'origin-not-allowlisted', origin: event.origin })
+            return
+          }
+          const next = readLoaded(message)
+          if (!next) {
+            onRejected({ reason: 'invalid-loaded-payload', origin: event.origin })
+            return
+          }
+          hostWindow = expected
+          hostOrigin = event.origin
+          state = next
+          onReady(context(), message)
+          return
+        }
+
+        if (event.source !== hostWindow || event.origin !== hostOrigin) return
+
+        if (message.event === 'loaded') {
+          const next = readLoaded(message)
+          if (next) { state = next; onReady(context(), message) }
+          return
+        }
+        if (message.event === 'tokenRefresh') {
+          if (typeof message.token === 'string' && message.token) state = { ...state, token: message.token }
+          onEvent({ event: 'tokenRefresh' })
+          return
+        }
+        if (message.event === 'apiPodIsReady') state = { ...state, apiServerIsReady: true }
+        if (message.event === 'apiPodIsNotReady') state = { ...state, apiServerIsReady: false }
+        onEvent(message)
+      }
+
+      function send(message) {
+        if (disposed || !hostWindow || hostWindow.closed) throw new Error('FieldTwin bridge is not ready')
+        hostWindow.postMessage(message, hostOrigin)
+      }
+
+      function apiUrl(path) {
+        if (!state?.backendBaseUrl || !state.apiVersion) throw new Error('FieldTwin API context is unavailable')
+        const root = new URL(`${state.backendBaseUrl}/API/${state.apiVersion}/`)
+        const url = new URL(String(path).replace(/^\/+/, ''), root)
+        if (url.origin !== root.origin || !url.pathname.startsWith(root.pathname)) {
+          throw new Error('API path must stay inside the FieldTwin API root')
+        }
+        return url
+      }
+
+      async function apiFetch(path, init = {}) {
+        if (!state?.apiServerIsReady) throw new Error('FieldTwin API server is not ready')
+        const headers = new Headers(init.headers)
+        headers.set('Authorization', `Bearer ${state.token}`)
+        return fetch(apiUrl(path), { ...init, headers, redirect: 'error' })
+      }
+
+      function dispose() {
+        disposed = true
+        window.removeEventListener('message', receive)
+        state = hostWindow = hostOrigin = null
+      }
+
+      window.addEventListener('message', receive)
+      return { send, apiFetch, apiUrl, context, dispose, allowedOrigins: () => [...allowed] }
+    }
+
+    // The page UI is built later in <body>. Until then, keep what happened in a small buffer.
+    // It holds only non-secret notices: never the token or a raw message.
+    const earlyNotices = []
+    let uiHandlers = null
+    const notify = (kind, payload) => {
+      if (uiHandlers) uiHandlers[kind](payload)
+      else if (earlyNotices.length < 50) earlyNotices.push([kind, payload])
+    }
+
+    const bridge = createFieldTwinBridge({
+      allowedOrigins: ALLOWED_FIELDTWIN_ORIGINS,
+      allowHttp: ALLOW_LOCAL_HTTP_FIELDTWIN,
+      onReady: (context, message) => {
+        const fields = Object.fromEntries(
+          Object.entries(message).filter(([key]) => key !== 'token').map(([key, value]) => [key, value])
+        )
+        notify('ready', { context, fields })
+      },
+      onEvent: (message) => notify('event', message),
+      onRejected: (details) => notify('rejected', details),
+    })
+
+    window.addEventListener('pagehide', () => bridge.dispose(), { once: true })
+  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -261,16 +439,26 @@
       color: #475569;
       font-size: 11px;
     }
+
+    .inline-code, .setup-guide code {
+      background: #0f1117;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      color: #93c5fd;
+    }
+    .tab:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
   </style>
 </head>
 <body>
 
   <h1>
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <rect width="16" height="16" rx="3" fill="#2563eb"/>
       <path d="M4 8h8M8 4v8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    FieldTwin AI Agent Toolkit -  Hello World
+    FieldTwin Hello World
   </h1>
 
   <div id="status" class="status-badge waiting">
@@ -278,11 +466,12 @@
     <span id="status-text">Waiting for FieldTwin...</span>
   </div>
 
-  <!-- Tabs -->
-  <div class="tabs">
-    <div class="tab active" onclick="switchTab('session')">Session</div>
-    <div class="tab" onclick="switchTab('api')">API Test</div>
-    <div class="tab" onclick="switchTab('diag')">Troubleshoot</div>
+  <div id="setup-notice" class="setup-guide" style="display:none;"></div>
+
+  <div class="tabs" role="tablist">
+    <div class="tab active" role="tab" tabindex="0" data-tab="session">Session</div>
+    <div class="tab" role="tab" tabindex="0" data-tab="api">API Test</div>
+    <div class="tab" role="tab" tabindex="0" data-tab="diag">Troubleshoot</div>
   </div>
 
   <!-- ==================== TAB: SESSION ==================== -->
@@ -290,34 +479,17 @@
 
     <div id="info-grid" class="info-grid">
       <div class="section-title">Session Info</div>
-      <div class="info-row">
-        <span class="info-label">Project ID</span>
-        <span class="info-value" id="val-project">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">SubProject ID</span>
-        <span class="info-value" id="val-subproject">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Backend URL</span>
-        <span class="info-value" id="val-backend">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Tab ID</span>
-        <span class="info-value" id="val-tabid">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Can Edit</span>
-        <span class="info-value" id="val-canedit">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">API Ready</span>
-        <span class="info-value" id="val-apiready">—</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Token (preview)</span>
-        <span class="info-value" id="val-token">—</span>
-      </div>
+      <div class="info-row"><span class="info-label">Layout</span><span class="info-value" id="val-layout">—</span></div>
+      <div class="info-row"><span class="info-label">Host origin</span><span class="info-value" id="val-origin">—</span></div>
+      <div class="info-row"><span class="info-label">Project ID</span><span class="info-value" id="val-project">—</span></div>
+      <div class="info-row"><span class="info-label">SubProject (qualified)</span><span class="info-value" id="val-subproject">—</span></div>
+      <div class="info-row"><span class="info-label">Stream</span><span class="info-value" id="val-stream">—</span></div>
+      <div class="info-row"><span class="info-label">Backend URL</span><span class="info-value" id="val-backend">—</span></div>
+      <div class="info-row"><span class="info-label">API version</span><span class="info-value" id="val-apiversion">—</span></div>
+      <div class="info-row"><span class="info-label">Tab ID</span><span class="info-value" id="val-tabid">—</span></div>
+      <div class="info-row"><span class="info-label">Can Edit</span><span class="info-value" id="val-canedit">—</span></div>
+      <div class="info-row"><span class="info-label">API Ready</span><span class="info-value" id="val-apiready">—</span></div>
+      <div class="info-row"><span class="info-label">Token</span><span class="info-value" id="val-token">—</span></div>
     </div>
 
     <div class="section-title">Event Log</div>
@@ -326,7 +498,7 @@
     </div>
 
     <div id="raw-loaded-section" style="display:none;margin-bottom:14px;">
-      <div class="section-title">Raw <code>loaded</code> event fields (token hidden)</div>
+      <div class="section-title">Raw <code>loaded</code> event fields (token omitted)</div>
       <div id="raw-loaded" style="display:flex;flex-direction:column;gap:4px;"></div>
     </div>
 
@@ -342,21 +514,21 @@
 
     <div class="section-title" style="margin-bottom:10px;">Test REST API Connection</div>
     <p style="font-size:12px;color:#94a3b8;margin-bottom:14px;line-height:1.5;">
-      These buttons call the FieldTwin REST API directly and display the raw response.
-      The integration must be connected (Session tab shows green) before these work.
+      These buttons call the FieldTwin REST API with the token FieldTwin gave this page and show
+      the raw response. They unlock when the Session tab is green and the API is ready.
     </p>
 
     <div class="btn-row">
-      <button class="btn btn-primary" id="btn-assets"      onclick="testApi('stagedAssets')" disabled>Get Staged Assets</button>
-      <button class="btn btn-ghost"   id="btn-wells"       onclick="testApi('wells')" disabled>Get Wells</button>
-      <button class="btn btn-ghost"   id="btn-connections" onclick="testApi('connections')" disabled>Get Connections</button>
-      <button class="btn btn-ghost"   id="btn-shapes"      onclick="testApi('shapes')" disabled>Get Shapes</button>
-      <button class="btn btn-ghost"   id="btn-meta"        onclick="testApi('metaDataDefinitions', true)" disabled>Get Metadata Defs</button>
+      <button class="btn btn-primary" data-api="stagedAssets" disabled>Get Staged Assets</button>
+      <button class="btn btn-ghost"   data-api="wells" disabled>Get Wells</button>
+      <button class="btn btn-ghost"   data-api="connections" disabled>Get Connections</button>
+      <button class="btn btn-ghost"   data-api="shapes" disabled>Get Shapes</button>
+      <button class="btn btn-ghost"   data-api="metadatadefinitions" data-scope="account" disabled>Get Metadata Defs</button>
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-ghost" id="btn-toast" onclick="sendTestToast()" disabled>Send Test Toast</button>
-      <button class="btn btn-ghost" id="btn-clear" onclick="clearApiResult()">Clear Result</button>
+      <button class="btn btn-ghost" id="btn-toast" disabled>Send Test Toast</button>
+      <button class="btn btn-ghost" id="btn-clear">Clear Result</button>
     </div>
 
     <div id="api-result" class="api-result"></div>
@@ -372,149 +544,46 @@
   <div id="tab-diag" class="tab-panel">
 
     <div class="diag-title">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
         <circle cx="8" cy="8" r="7" stroke="#60a5fa" stroke-width="1.5"/>
         <path d="M8 5v4M8 11v.5" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
       Connection Diagnostics
     </div>
 
-    <!-- Setup guide -->
     <div class="setup-guide">
       <div class="setup-guide-title">How to serve your integration</div>
 
       <div class="setup-option">
-        <div class="setup-option-label">Option A — GitHub Pages (simplest, no server needed)</div>
-        <p>Push your HTML file to GitHub and enable GitHub Pages. You get a permanent HTTPS URL that works from anywhere — including restricted corporate networks.</p>
-        <p style="color:#64748b;font-size:11px;">Best for: simple HTML/JS integrations, sharing with clients, vibe coding.</p>
+        <div class="setup-option-label">Option A — GitHub Pages or any HTTPS static host (simplest)</div>
+        <p>Push this file to GitHub and enable GitHub Pages. You get a permanent HTTPS URL that works from any network.</p>
+        <p style="color:#64748b;font-size:11px;">Best for: single-page integrations, demos, sharing.</p>
       </div>
 
       <div class="setup-option">
-        <div class="setup-option-label">Option B — localhost (for active development)</div>
-        <p>Run a local server (<code style="background:#0f1117;padding:1px 4px;border-radius:3px;color:#93c5fd;">npx serve .</code> or <code style="background:#0f1117;padding:1px 4px;border-radius:3px;color:#93c5fd;">python -m http.server 3000</code>) and register <code style="background:#0f1117;padding:1px 4px;border-radius:3px;color:#93c5fd;">http://localhost:PORT</code> as your integration URL in FieldTwin.</p>
-        <p style="color:#64748b;font-size:11px;">Best for: live reload during development, integrations with a Python/Node backend on localhost.</p>
+        <div class="setup-option-label">Option B — localhost (active development only)</div>
+        <p>Run <code class="inline-code">npx serve .</code> or <code class="inline-code">python3 -m http.server 3000</code> and register <code class="inline-code">http://localhost:PORT</code> as the integration URL.</p>
         <div class="chrome-steps">
-          <div class="chrome-steps-title">Required one-time Chrome setup — do this before adding the integration to FieldTwin</div>
+          <div class="chrome-steps-title">An HTTPS FieldTwin blocks an http:// page as mixed content. For local testing only, in Chrome:</div>
           <ol>
-            <li>Open FieldTwin in Chrome.</li>
-            <li>Click the <strong>icon to the left of the URL bar</strong> (lock or info icon).</li>
-            <li>Click <strong>Site settings</strong>.</li>
-            <li>Find <strong>Insecure content</strong>.</li>
-            <li>Change it from <strong>Block</strong> to <strong>Allow</strong>.</li>
-            <li>Reload FieldTwin.</li>
+            <li>Open FieldTwin, click the <strong>icon left of the URL bar</strong> → <strong>Site settings</strong>.</li>
+            <li>Set <strong>Insecure content</strong> to <strong>Allow</strong>, then reload FieldTwin.</li>
+            <li>Set it back to <strong>Block</strong> when you finish. For teammates, use HTTPS (Option A or a tunnel such as ngrok).</li>
           </ol>
-          <p style="color:#64748b;font-size:11px;margin-top:6px;">This allows FieldTwin (HTTPS) to load your local integration (HTTP). Without this step, the browser blocks the iFrame silently.</p>
         </div>
+      </div>
+
+      <div class="setup-option">
+        <div class="setup-option-label">In FieldTwin: Admin → Integrations → Create New Tab</div>
+        <p>Enable <strong>Use GET verb</strong> and <strong>Do not pass arguments in URL</strong>. A static page cannot answer FieldTwin's default POST.</p>
       </div>
     </div>
 
-    <div class="check-list" id="check-list">
-
-      <div class="check-item" id="chk-protocol">
-        <div class="check-icon idle" id="chk-protocol-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">Page served over HTTP/HTTPS</div>
-          <div class="check-desc" id="chk-protocol-desc">
-            FieldTwin only sends <code>postMessage</code> to pages served over HTTP or HTTPS.
-            If you opened this file directly as <code>file://</code>, it will never connect.
-            <br><br>
-            <strong>Fix A (GitHub Pages):</strong> Push this file to GitHub, enable GitHub Pages, and register the <code>https://your-org.github.io/...</code> URL in FieldTwin.<br><br>
-            <strong>Fix B (localhost):</strong> Run <code>npx serve .</code> or <code>python -m http.server 3000</code>, then follow the Chrome setup in the guide above before registering <code>http://localhost:PORT</code> in FieldTwin.
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-iframe">
-        <div class="check-icon idle" id="chk-iframe-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">Running inside a FieldTwin iFrame</div>
-          <div class="check-desc" id="chk-iframe-desc">
-            FieldTwin only communicates with integrations embedded as iFrames.
-            Opening this page in a standalone browser tab will not trigger <code>loaded</code>.
-            <br><br>
-            <strong>Fix:</strong> Add the URL in FieldTwin → Settings → Integrations → Add Integration.<br><br>
-            <strong>If you are using localhost:</strong> Make sure you completed the Chrome insecure content setup (see guide above) <em>before</em> adding the integration. If Chrome is blocking the iFrame silently, the integration panel will appear blank with no error.
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-loaded">
-        <div class="check-icon idle" id="chk-loaded-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">Received <code>loaded</code> event from FieldTwin</div>
-          <div class="check-desc" id="chk-loaded-desc">
-            The <code>loaded</code> event is sent by FieldTwin when your integration is opened.
-            It contains the token, backendUrl, and subProjectId needed for everything else.
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-token">
-        <div class="check-icon idle" id="chk-token-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">JWT token received</div>
-          <div class="check-desc" id="chk-token-desc">
-            The token is required for all REST API calls.
-            If it is missing, your integration may not have the correct permissions.
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-backendurl">
-        <div class="check-icon idle" id="chk-backendurl-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">Backend URL received</div>
-          <div class="check-desc" id="chk-backendurl-desc">
-            The <code>backendUrl</code> is the base URL for all REST API calls.
-            It must not have a trailing slash.
-            <br>Example: <code>https://backend.fieldtwin.com</code>
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-subproject">
-        <div class="check-icon idle" id="chk-subproject-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">SubProject ID received</div>
-          <div class="check-desc" id="chk-subproject-desc">
-            The subProjectId is required for all project-scoped API calls.
-            It comes from <code>msg.subProject</code> (not <code>msg.subProjectId</code>) in the <code>loaded</code> event.
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-apiready">
-        <div class="check-icon idle" id="chk-apiready-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">API server is ready</div>
-          <div class="check-desc" id="chk-apiready-desc">
-            <code>APIServerIsReady</code> must be <code>true</code> in the <code>loaded</code> event before calling the REST API.
-            If it is <code>false</code>, wait for the <code>apiPodIsReady</code> event.
-          </div>
-        </div>
-      </div>
-
-      <div class="check-item" id="chk-apiping">
-        <div class="check-icon idle" id="chk-apiping-icon">?</div>
-        <div class="check-body">
-          <div class="check-title">REST API call succeeds</div>
-          <div class="check-desc" id="chk-apiping-desc">
-            A live GET request to <code>/API/v1.10/-/subProject/{id}/stagedAssets</code>
-            using the received token and backendUrl.
-            <br><br>
-            <strong>Common failures:</strong><br>
-            • <strong>401</strong> — Token expired or wrong Authorization header format. Use <code>Bearer {token}</code>.<br>
-            • <strong>404</strong> — Check backendUrl (no trailing slash) and subProjectId.<br>
-            • <strong>CORS/Network error</strong> — The backendUrl may not allow requests from this origin. Check browser console.
-          </div>
-        </div>
-      </div>
-
-    </div>
+    <div class="check-list" id="check-list"></div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="runDiagnostics()">Run Diagnostics</button>
-      <button class="btn btn-ghost"   onclick="resetDiagnostics()">Reset</button>
+      <button class="btn btn-primary" id="btn-diag-run">Run Diagnostics</button>
+      <button class="btn btn-ghost"   id="btn-diag-reset">Reset</button>
     </div>
 
     <div id="diag-summary" style="display:none;padding:10px 12px;background:#1a1f2e;border:1px solid #2d3748;border-radius:6px;font-size:12px;line-height:1.6;"></div>
@@ -522,442 +591,380 @@
   </div>
 
   <footer>
-    FieldTwin AI Skill — Hello World &nbsp;·&nbsp; Open browser console for full event data
+    FieldTwin Hello World &nbsp;·&nbsp; Built on the secure bridge from the develop-fieldtwin-integration skill
   </footer>
 
   <script>
-    // -------------------------------------------------------
-    // FieldTwin Hello World — with API test and diagnostics
-    // -------------------------------------------------------
+    // ---------------------------------------------------------------------
+    // Page UI. Everything that reaches the DOM goes through textContent or
+    // createElement, never innerHTML, because resource names are user data.
+    // ---------------------------------------------------------------------
 
-    let session = {};
-    let loaded  = false;
-    let logEntries = [];
+    const $ = (id) => document.getElementById(id)
+    const logEntries = []
+    const rejected = []
+    let context = null
+    let loadedFields = null
+    let selection = []
+
+    function el(tag, className, text) {
+      const node = document.createElement(tag)
+      if (className) node.className = className
+      if (text !== undefined) node.textContent = text
+      return node
+    }
+
+    // Build rich text from parts: strings are text, { code } becomes <code>, { strong } becomes <strong>.
+    function rich(...parts) {
+      const fragment = document.createDocumentFragment()
+      for (const part of parts) {
+        if (part === '\n') fragment.append(document.createElement('br'))
+        else if (typeof part === 'string') fragment.append(part)
+        else if (part.code !== undefined) fragment.append(el('code', null, String(part.code)))
+        else if (part.strong !== undefined) fragment.append(el('strong', null, String(part.strong)))
+      }
+      return fragment
+    }
 
     // ---- Logging ----
 
     function addLog(type, text) {
-      const time = new Date().toLocaleTimeString('en-US', { hour12: false });
-      logEntries.unshift({ time, type, text });
-      renderLog();
+      const time = new Date().toLocaleTimeString('en-US', { hour12: false })
+      logEntries.unshift({ time, type, text })
+      logEntries.length = Math.min(logEntries.length, 30)
+      $('log').replaceChildren(...logEntries.map((entry) => {
+        const row = el('div', 'log-entry')
+        row.append(el('span', 'log-time', entry.time), el('span', `log-${entry.type}`, entry.text))
+        return row
+      }))
     }
-
-    function renderLog() {
-      const container = document.getElementById('log');
-      if (logEntries.length === 0) {
-        container.innerHTML = '<div class="empty-log">No events yet.</div>';
-        return;
-      }
-      container.innerHTML = logEntries.slice(0, 30).map(e =>
-        `<div class="log-entry">
-           <span class="log-time">${e.time}</span>
-           <span class="log-${e.type}">${e.text}</span>
-         </div>`
-      ).join('');
-    }
-
-    // ---- Status badge ----
 
     function setStatus(state, text) {
-      const badge = document.getElementById('status');
-      const dot   = document.getElementById('dot');
-      const label = document.getElementById('status-text');
-      badge.className = `status-badge ${state}`;
-      dot.className   = `dot ${state}`;
-      label.textContent = text;
+      $('status').className = `status-badge ${state}`
+      $('dot').className = `dot ${state}`
+      $('status-text').textContent = text
     }
 
     // ---- Tabs ----
 
     function switchTab(name) {
-      document.querySelectorAll('.tab').forEach((t, i) => {
-        const panels = ['session','api','diag'];
-        t.classList.toggle('active', panels[i] === name);
-      });
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('tab-' + name).classList.add('active');
+      document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === name))
+      document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `tab-${name}`))
     }
+    document.querySelectorAll('.tab').forEach((tab) => {
+      tab.addEventListener('click', () => switchTab(tab.dataset.tab))
+      tab.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') switchTab(tab.dataset.tab) })
+    })
 
-    // ---- Enable API buttons ----
+    // ---- Setup notice: guide the user to a correct allowlist ----
 
-    function enableApiButtons() {
-      ['btn-assets','btn-wells','btn-connections','btn-shapes','btn-meta','btn-toast'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.disabled = false;
-      });
-    }
+    function renderSetupNotice() {
+      const notice = $('setup-notice')
+      const origins = [...new Set(rejected.filter((r) => r.reason === 'origin-not-allowlisted').map((r) => r.origin))]
+      const placeholder = ALLOWED_FIELDTWIN_ORIGINS.includes(PLACEHOLDER_ORIGIN)
+      if (context || (!placeholder && origins.length === 0)) { notice.style.display = 'none'; return }
 
-    // ---- postMessage listener ----
-
-    window.addEventListener('message', function(event) {
-      const msg = event.data;
-      if (!msg || !msg.event) return;
-
-      console.log('[FieldTwin Hello World] Event:', msg.event, msg);
-
-      switch (msg.event) {
-
-        case 'loaded': {
-          loaded = true;
-
-          // FieldTwin sends subProject as "subProjectId:subProjectId" in some versions.
-          // Extract the real subProjectId (part after the colon).
-          const rawSubProject = msg.subProject || '';
-          const subProjectId  = rawSubProject.split(':').pop();
-
-          // Project ID: try known field names, fall back to '-' (JWT-based shorthand).
-          const projectId = msg.project || msg.projectId || msg.accountId || '-';
-
-          session = {
-            token:        msg.token,
-            backendUrl:   msg.backendUrl,
-            projectId:    projectId,
-            subProjectId: subProjectId,
-            customTabId:  msg.customTabId,
-            canEdit:      msg.canEdit,
-            apiReady:     msg.APIServerIsReady,
-            _raw:         msg   // keep full payload for debug display
-          };
-
-          setStatus('connected', 'Connected to FieldTwin!');
-
-          document.getElementById('val-project').textContent    = session.projectId    || '(not provided)';
-          document.getElementById('val-subproject').textContent = session.subProjectId || '(not provided)';
-          document.getElementById('val-backend').textContent    = session.backendUrl    || '(not provided)';
-          document.getElementById('val-tabid').textContent      = session.customTabId   || '(not provided)';
-          document.getElementById('val-canedit').textContent    = session.canEdit ? 'Yes' : 'No';
-          document.getElementById('val-apiready').textContent   = session.apiReady ? 'Yes' : 'Waiting...';
-
-          // Show raw loaded event for debugging
-          const rawFields = Object.entries(msg)
-            .filter(([k]) => k !== 'token')
-            .map(([k, v]) => `<div class="info-row"><span class="info-label">${k}</span><span class="info-value">${JSON.stringify(v)}</span></div>`)
-            .join('');
-          document.getElementById('raw-loaded').innerHTML = rawFields;
-          document.getElementById('raw-loaded-section').style.display = 'block';
-          document.getElementById('val-token').textContent      = session.token
-            ? '...' + session.token.slice(-8)
-            : '(not provided)';
-          document.getElementById('info-grid').classList.add('visible');
-
-          addLog('event', 'loaded — integration initialized');
-
-          if (session.apiReady) enableApiButtons();
-
-          // Send hello toast
-          window.parent.postMessage({
-            event: 'toast',
-            data: { type: 'success', message: '👋 Hello from FieldTwin AI Skill!' }
-          }, '*');
-
-          addLog('info', 'toast sent → "Hello from FieldTwin AI Skill!"');
-          break;
-        }
-
-        case 'apiPodIsReady': {
-          session.apiReady = true;
-          document.getElementById('val-apiready').textContent = 'Yes (via apiPodIsReady)';
-          enableApiButtons();
-          addLog('ok', 'apiPodIsReady — API server is ready');
-          break;
-        }
-
-        case 'select': {
-          const items = msg.data || [];
-          addLog('event', `select — ${items.length} item(s) selected`);
-
-          const box  = document.getElementById('selection-box');
-          const list = document.getElementById('selection-list');
-
-          if (items.length === 0) {
-            box.classList.remove('visible');
-            return;
-          }
-
-          box.classList.add('visible');
-          list.innerHTML = items.map(item =>
-            `<div class="selection-item">
-               <span class="selection-type">${item.type || 'unknown'}</span>
-               <span>${item.name || item.id}</span>
-             </div>`
-          ).join('');
-          break;
-        }
-
-        case 'operationSearch': {
-          addLog('event', `operationSearch — query: "${msg.query}"`);
-          window.parent.postMessage({
-            event: 'operationSearchResults',
-            data: { results: [] }
-          }, '*');
-          break;
-        }
-
-        default:
-          addLog('info', `event: ${msg.event}`);
-          break;
-      }
-    });
-
-    // ---- API Test ----
-
-    async function testApi(resource, isProjectLevel) {
-      if (!session.backendUrl || !session.token) {
-        showApiResult('error', 'Not connected yet. Wait for the loaded event first.');
-        return;
-      }
-
-      let path;
-      if (isProjectLevel) {
-        path = `/API/v1.10/${session.projectId}/metaDataDefinitions`;
+      const children = [el('div', 'setup-guide-title', 'One setup step left')]
+      if (origins.length > 0) {
+        const p = el('p')
+        p.append(rich('FieldTwin at ', { code: origins.join(', ') }, ' tried to connect, but that origin is not in ',
+          { code: 'ALLOWED_FIELDTWIN_ORIGINS' }, '. If this is your FieldTwin address, add it at the top of this file, redeploy, and reopen the panel.'))
+        children.push(p)
       } else {
-        path = `/API/v1.10/${session.projectId}/subProject/${session.subProjectId}/${resource}`;
+        const p = el('p')
+        p.append(rich('Edit ', { code: 'ALLOWED_FIELDTWIN_ORIGINS' }, ' at the top of this file and replace ',
+          { code: PLACEHOLDER_ORIGIN }, ' with your FieldTwin address, for example ', { code: 'https://yourcompany.fieldtwin.com' }, '.'))
+        children.push(p)
       }
+      notice.replaceChildren(...children)
+      notice.style.display = 'block'
+    }
 
-      const url = `${session.backendUrl}${path}`;
-      document.getElementById('api-url-shown').textContent = url;
+    // ---- Bridge callbacks ----
 
-      showApiResult('idle', 'Loading...');
+    function onReady(ctx, fields) {
+      context = ctx
+      loadedFields = fields
+      setStatus('connected', 'Connected to FieldTwin!')
+      renderSetupNotice()
 
-      try {
-        const res = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${session.token}` }
-        });
+      $('val-layout').textContent = ctx.layout
+      $('val-origin').textContent = ctx.hostOrigin
+      $('val-project').textContent = ctx.project || '(not provided)'
+      $('val-subproject').textContent = ctx.subProject || '(not provided)'
+      $('val-stream').textContent = ctx.stream || '(not provided)'
+      $('val-backend').textContent = ctx.backendBaseUrl || '(not provided)'
+      $('val-apiversion').textContent = ctx.apiVersion || '(not provided)'
+      $('val-tabid').textContent = ctx.customTabId || '(not provided)'
+      $('val-canedit').textContent = ctx.canEdit ? 'Yes' : 'No'
+      $('val-apiready').textContent = ctx.apiServerIsReady ? 'Yes' : 'Waiting...'
+      $('val-token').textContent = ctx.hasToken ? 'Received (kept in memory, never displayed)' : '(not provided)'
+      $('info-grid').classList.add('visible')
 
-        if (!res.ok) {
-          const body = await res.text().catch(() => '');
-          showApiResult('error', `HTTP ${res.status} ${res.statusText}\n\n${body}`);
-          addLog('error', `API ${res.status} — ${resource}`);
-          return;
-        }
+      $('raw-loaded').replaceChildren(...Object.entries(fields).map(([key, value]) => {
+        const row = el('div', 'info-row')
+        row.append(el('span', 'info-label', key), el('span', 'info-value', JSON.stringify(value)))
+        return row
+      }))
+      $('raw-loaded-section').style.display = 'block'
 
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : Object.values(data);
-        const count = list.length;
+      addLog('event', 'loaded — trusted origin and host window pinned')
+      setApiButtons(ctx.apiServerIsReady)
 
-        showApiResult('ok', `✓ HTTP 200 — ${count} item(s) returned\n\n${JSON.stringify(data, null, 2)}`);
-        addLog('ok', `API 200 — ${resource} (${count} items)`);
+      bridge.send({ event: 'toast', data: { type: 'success', message: 'Hello from the FieldTwin Hello World!' } })
+      addLog('info', 'toast sent → "Hello from the FieldTwin Hello World!"')
+    }
 
-      } catch (err) {
-        showApiResult('error', `Network error: ${err.message}\n\nPossible causes:\n• CORS — the backendUrl does not allow requests from this origin\n• Network — check VPN or firewall\n• Wrong URL — verify backendUrl has no trailing slash`);
-        addLog('error', `API fetch failed — ${err.message}`);
+    function onEvent(message) {
+      switch (message.event) {
+        case 'tokenRefresh':
+          addLog('ok', 'tokenRefresh — token replaced in memory')
+          return
+        case 'apiPodIsReady':
+          context = bridge.context()
+          $('val-apiready').textContent = 'Yes (via apiPodIsReady)'
+          setApiButtons(true)
+          addLog('ok', 'apiPodIsReady — API server is ready')
+          return
+        case 'apiPodIsNotReady':
+          context = bridge.context()
+          $('val-apiready').textContent = 'No (apiPodIsNotReady)'
+          setApiButtons(false)
+          addLog('info', 'apiPodIsNotReady — API paused')
+          return
+        case 'select':
+          renderSelection(Array.isArray(message.data) ? message.data : [])
+          return
+        case 'unselect':
+          renderSelection([])
+          return
+        case 'operationSearch':
+          addLog('event', message.clear ? 'operationSearch — cleared' : `operationSearch — query: "${message.query}"`)
+          // This demo has no search data: publish an empty result set and mark progress complete.
+          bridge.send({ event: 'operationSearchResults', data: { results: [] } })
+          bridge.send({ event: 'operationSearchProgress', data: { status: '', isComplete: true } })
+          return
+        default:
+          addLog('info', `event: ${message.event}`)
       }
+    }
+
+    function onRejected({ reason, origin }) {
+      rejected.push({ reason, origin })
+      const text = {
+        'origin-not-allowlisted': `Rejected loaded from ${origin}: origin is not in ALLOWED_FIELDTWIN_ORIGINS`,
+        'wrong-window': `Rejected loaded from ${origin}: it did not come from the FieldTwin host window`,
+        'invalid-loaded-payload': `Rejected loaded from ${origin}: missing token or non-HTTPS backendUrl`,
+        'bad-allowlist-entry': `Allowlist entry ignored: "${origin}" must be an exact https origin, e.g. https://fieldtwin.example`,
+      }[reason] || `Rejected message: ${reason}`
+      addLog('error', text)
+      setStatus('error', reason === 'bad-allowlist-entry' ? 'Check ALLOWED_FIELDTWIN_ORIGINS' : 'Connection rejected — see the notice above')
+      renderSetupNotice()
+    }
+
+    function renderSelection(items) {
+      selection = items
+      addLog('event', `${items.length ? 'select' : 'unselect'} — ${items.length} item(s)`)
+      $('selection-box').classList.toggle('visible', items.length > 0)
+      $('selection-list').replaceChildren(...items.map((item) => {
+        const row = el('div', 'selection-item')
+        row.append(el('span', 'selection-type', item.type || 'unknown'), el('span', null, item.name || item.id))
+        return row
+      }))
+    }
+
+    // ---- API test ----
+
+    function subProjectPath(suffix) {
+      const { project, subProject, stream } = bridge.context()
+      if (!project || !subProject) throw new Error('No project/subproject in the loaded event')
+      // loaded.subProject is already qualified as subProjectId:streamId. Qualify only a bare ID.
+      const qualified = subProject.includes(':') ? subProject : `${subProject}:${stream || subProject}`
+      return `${encodeURIComponent(project)}/subProject/${encodeURIComponent(qualified)}${suffix}`
+    }
+
+    function setApiButtons(enabled) {
+      document.querySelectorAll('[data-api], #btn-toast').forEach((button) => { button.disabled = !enabled })
+      $('btn-toast').disabled = !context
     }
 
     function showApiResult(state, text) {
-      const el = document.getElementById('api-result');
-      el.className = `api-result visible ${state === 'ok' ? 'ok' : state === 'error' ? 'error' : ''}`;
-      el.textContent = text;
+      $('api-result').className = `api-result visible ${state === 'ok' ? 'ok' : state === 'error' ? 'error' : ''}`
+      $('api-result').textContent = text
     }
 
-    function clearApiResult() {
-      const el = document.getElementById('api-result');
-      el.className = 'api-result';
-      el.textContent = '';
-      document.getElementById('api-url-shown').textContent = '(none yet)';
+    async function testApi(resource, scope) {
+      let path
+      try {
+        path = scope === 'account' ? resource : subProjectPath(`/${resource}`)
+        $('api-url-shown').textContent = bridge.apiUrl(path).href
+      } catch (error) {
+        showApiResult('error', error.message)
+        return
+      }
+
+      showApiResult('idle', 'Loading...')
+      try {
+        const response = await bridge.apiFetch(path)
+        const text = await response.text()
+        if (!response.ok) {
+          const hints = {
+            401: 'Token expired or rejected. Reopen the panel; FieldTwin sends a fresh token.',
+            403: 'Your user does not have the right for this route.',
+            404: 'Wrong path or ID. The project and qualified subproject come from loaded; there is no "-" wildcard.',
+            503: 'The API is not ready yet. Wait for apiPodIsReady.',
+          }
+          showApiResult('error', `HTTP ${response.status} ${response.statusText}\n${hints[response.status] || ''}\n\n${text.slice(0, 4000)}`)
+          addLog('error', `API ${response.status} — ${resource}`)
+          return
+        }
+        const data = text ? JSON.parse(text) : null
+        const count = Array.isArray(data) ? data.length : Object.keys(data || {}).length
+        showApiResult('ok', `✓ HTTP ${response.status} — ${count} item(s)\n\n${JSON.stringify(data, null, 2).slice(0, 20000)}`)
+        addLog('ok', `API ${response.status} — ${resource} (${count} items)`)
+      } catch (error) {
+        showApiResult('error', `${error.message}\n\nPossible causes:\n• The API is not ready yet\n• CORS — the backend does not allow this page's origin\n• Network or VPN`)
+        addLog('error', `API request failed — ${error.message}`)
+      }
     }
 
-    function sendTestToast() {
-      window.parent.postMessage({
-        event: 'toast',
-        data: { type: 'info', message: 'Test toast from Hello World!' }
-      }, '*');
-      addLog('info', 'toast sent → info');
-    }
+    document.querySelectorAll('[data-api]').forEach((button) => {
+      button.addEventListener('click', () => testApi(button.dataset.api, button.dataset.scope))
+    })
+    $('btn-toast').addEventListener('click', () => {
+      bridge.send({ event: 'toast', data: { type: 'info', message: 'Test toast from the Hello World!' } })
+      addLog('info', 'toast sent → info')
+    })
+    $('btn-clear').addEventListener('click', () => {
+      $('api-result').className = 'api-result'
+      $('api-result').textContent = ''
+      $('api-url-shown').textContent = '(none yet)'
+    })
 
     // ---- Diagnostics ----
 
-    function setCheck(id, state, desc) {
-      const icon = document.getElementById(`chk-${id}-icon`);
-      if (!icon) return;
-      icon.className = `check-icon ${state}`;
-      icon.textContent = state === 'pass' ? '✓' : state === 'fail' ? '✗' : state === 'warn' ? '!' : '?';
-      if (desc) document.getElementById(`chk-${id}-desc`).innerHTML = desc;
+    const CHECKS = [
+      ['protocol', 'Page served over HTTPS (or http://localhost for local testing)'],
+      ['embedded', 'Opened by FieldTwin (iframe or pop-out)'],
+      ['allowlist', 'ALLOWED_FIELDTWIN_ORIGINS is configured'],
+      ['loaded', 'Received a trusted loaded event'],
+      ['token', 'JWT received (kept in memory)'],
+      ['backend', 'Backend URL and API version received'],
+      ['scope', 'Project and qualified subproject received'],
+      ['apiready', 'API server is ready'],
+      ['apiping', 'REST API call succeeds'],
+    ]
+
+    function renderChecks() {
+      $('check-list').replaceChildren(...CHECKS.map(([id, title]) => {
+        const item = el('div', 'check-item')
+        const icon = el('div', 'check-icon idle', '?')
+        icon.id = `chk-${id}-icon`
+        const body = el('div', 'check-body')
+        const desc = el('div', 'check-desc')
+        desc.id = `chk-${id}-desc`
+        body.append(el('div', 'check-title', title), desc)
+        item.append(icon, body)
+        return item
+      }))
+    }
+
+    function setCheck(id, state, ...parts) {
+      const icon = $(`chk-${id}-icon`)
+      icon.className = `check-icon ${state}`
+      icon.textContent = { pass: '✓', fail: '✗', warn: '!' }[state] || '?'
+      $(`chk-${id}-desc`).replaceChildren(rich(...parts))
     }
 
     async function runDiagnostics() {
-      resetDiagnostics();
-      document.getElementById('diag-summary').style.display = 'none';
+      renderChecks()
+      let fails = 0
+      const fail = (id, ...parts) => { fails += 1; setCheck(id, 'fail', ...parts) }
 
-      let passes = 0;
-      let fails  = 0;
-
-      // 1. Protocol
-      const proto = location.protocol;
-      const host  = location.hostname;
-      if (proto === 'https:') {
-        setCheck('protocol', 'pass', `Page is served over <code>https://</code> — correct.`);
-        passes++;
-      } else if (proto === 'http:' && (host === 'localhost' || host === '127.0.0.1')) {
-        setCheck('protocol', 'warn',
-          `Page is served over <code>http://localhost</code>.<br><br>` +
-          `This can work, but Chrome must be configured to allow insecure content for your FieldTwin URL. ` +
-          `If the integration panel is blank or the <code>loaded</code> event never arrives, complete the Chrome setup:<br><br>` +
-          `<strong>1.</strong> Open FieldTwin in Chrome.<br>` +
-          `<strong>2.</strong> Click the icon left of the URL bar → <strong>Site settings</strong>.<br>` +
-          `<strong>3.</strong> Find <strong>Insecure content</strong> → set to <strong>Allow</strong>.<br>` +
-          `<strong>4.</strong> Reload FieldTwin and reopen the integration panel.`
-        );
-        passes++; // Not a hard fail — it can work with Chrome override
-      } else if (proto === 'http:') {
-        setCheck('protocol', 'pass', `Page is served over <code>http://</code> — correct. Remember Chrome must allow insecure content for your FieldTwin URL.`);
-        passes++;
+      const { protocol, hostname } = location
+      if (protocol === 'https:') setCheck('protocol', 'pass', 'Served over ', { code: 'https://' }, '.')
+      else if (protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+        setCheck('protocol', 'warn', 'Served over ', { code: 'http://localhost' },
+          '. An HTTPS FieldTwin blocks this as mixed content unless you allowed insecure content for local testing (see the guide above).')
+      } else if (protocol === 'http:') {
+        fail('protocol', 'Served over plain ', { code: 'http://' }, ' on a non-local host. Use HTTPS.')
       } else {
-        setCheck('protocol', 'fail',
-          `Page protocol is <code>${proto}</code> — this will not work.<br><br>` +
-          `<strong>Fix A (GitHub Pages):</strong> Push your file to GitHub and enable GitHub Pages.<br><br>` +
-          `<strong>Fix B (localhost):</strong> Run <code>npx serve .</code> or <code>python -m http.server 3000</code>, ` +
-          `then follow the Chrome insecure content setup in the guide at the top of this tab.`
-        );
-        fails++;
+        fail('protocol', 'Protocol is ', { code: protocol }, '. Serve the page over HTTPS; a ', { code: 'file://' }, ' page never connects.')
       }
 
-      // 2. iFrame check
-      const isInIframe = window !== window.top;
-      if (isInIframe) {
-        setCheck('iframe', 'pass', 'Running inside an iFrame — correct.');
-        passes++;
-      } else {
-        setCheck('iframe', 'warn',
-          `This page is running in a standalone browser tab, not inside a FieldTwin iFrame.<br><br>` +
-          `<strong>Fix:</strong> Add this URL as an integration in FieldTwin → Settings → Integrations → Add Integration.`
-        );
-        // Not a hard fail — can still test in dev
-      }
+      const embedded = window.parent !== window
+      const popout = !embedded && window.opener && !window.opener.closed
+      if (embedded || popout) setCheck('embedded', 'pass', embedded ? 'Running inside an iframe.' : 'Running as a pop-out with a live opener.')
+      else fail('embedded', 'This is a standalone tab. Add the URL in FieldTwin (Admin → Integrations) and open the panel there.')
 
-      // 3. loaded received
-      if (loaded) {
-        setCheck('loaded', 'pass', `<code>loaded</code> event received successfully.`);
-        passes++;
-      } else {
-        setCheck('loaded', 'fail',
-          `<code>loaded</code> event has NOT been received yet.<br><br>` +
-          `<strong>Checklist:</strong><br>` +
-          `1. Is the page served via HTTP/HTTPS? (not <code>file://</code>)<br>` +
-          `2. Is this page embedded in FieldTwin as an integration?<br>` +
-          `3. Did you open the integration panel in FieldTwin?<br>` +
-          `4. Check the browser console for JavaScript errors.`
-        );
-        fails++;
-      }
+      const allowlist = bridge.allowedOrigins()
+      if (allowlist.length === 0) fail('allowlist', 'No valid origin. Entries must be exact https origins such as ', { code: 'https://yourcompany.fieldtwin.com' }, '.')
+      else if (ALLOWED_FIELDTWIN_ORIGINS.includes(PLACEHOLDER_ORIGIN)) fail('allowlist', 'Still the placeholder ', { code: PLACEHOLDER_ORIGIN }, '. Replace it with your FieldTwin address.')
+      else setCheck('allowlist', 'pass', 'Allowed: ', { code: allowlist.join(', ') })
 
-      // 4. Token
-      if (session.token) {
-        const preview = '...' + session.token.slice(-8);
-        setCheck('token', 'pass', `Token received: <code>${preview}</code>`);
-        passes++;
-      } else {
-        setCheck('token', loaded ? 'fail' : 'idle',
-          loaded
-            ? `Token was missing in the <code>loaded</code> event. Your integration may not have the correct permissions.`
-            : `Waiting for <code>loaded</code> event.`
-        );
-        if (loaded) fails++;
-      }
+      const rejectedOrigins = [...new Set(rejected.filter((r) => r.reason === 'origin-not-allowlisted').map((r) => r.origin))]
+      if (context) setCheck('loaded', 'pass', 'Trusted ', { code: 'loaded' }, ' received; origin and host window are pinned.')
+      else if (rejectedOrigins.length) fail('loaded', 'A ', { code: 'loaded' }, ' from ', { code: rejectedOrigins.join(', ') }, ' was rejected because that origin is not allowlisted. If it is your FieldTwin, add it to ', { code: 'ALLOWED_FIELDTWIN_ORIGINS' }, '.')
+      else fail('loaded', 'No ', { code: 'loaded' }, ' yet.', '\n', '1. Open the integration panel in FieldTwin.', '\n',
+        '2. Check the browser console for iframe errors (', { code: 'frame-ancestors' }, ', ', { code: 'X-Frame-Options' }, ', mixed content).', '\n',
+        '3. With a static host, enable Use GET verb and Do not pass arguments in URL.')
 
-      // 5. backendUrl
-      if (session.backendUrl) {
-        const trailingSlash = session.backendUrl.endsWith('/');
-        if (trailingSlash) {
-          setCheck('backendurl', 'warn',
-            `backendUrl received but has a trailing slash: <code>${session.backendUrl}</code><br>` +
-            `This will cause 404 errors on API calls. The trailing slash must be removed.`
-          );
-        } else {
-          setCheck('backendurl', 'pass', `backendUrl: <code>${session.backendUrl}</code>`);
-          passes++;
-        }
-      } else {
-        setCheck('backendurl', loaded ? 'fail' : 'idle',
-          loaded ? `backendUrl was missing in the <code>loaded</code> event.` : `Waiting for <code>loaded</code> event.`
-        );
-        if (loaded) fails++;
-      }
+      const idle = (id) => setCheck(id, 'idle', 'Waiting for ', { code: 'loaded' }, '.')
+      if (!context) { ['token', 'backend', 'scope', 'apiready', 'apiping'].forEach(idle) }
+      else {
+        if (context.hasToken) setCheck('token', 'pass', 'Token received. It is kept in memory and never shown.')
+        else fail('token', 'The loaded event had no token.')
 
-      // 6. subProjectId
-      if (session.subProjectId) {
-        setCheck('subproject', 'pass', `subProjectId: <code>${session.subProjectId}</code>`);
-        passes++;
-      } else {
-        setCheck('subproject', loaded ? 'fail' : 'idle',
-          loaded
-            ? `subProjectId was missing. Note: it comes from <code>msg.subProject</code> (not <code>msg.subProjectId</code>).`
-            : `Waiting for <code>loaded</code> event.`
-        );
-        if (loaded) fails++;
-      }
+        if (context.backendBaseUrl && context.apiVersion) setCheck('backend', 'pass', { code: context.backendBaseUrl }, ' · ', { code: context.apiVersion })
+        else fail('backend', 'No backendUrl or APIVersion. This surface (for example Account Settings) may not provide project API context.')
 
-      // 7. API ready
-      if (session.apiReady) {
-        setCheck('apiready', 'pass', `APIServerIsReady was <code>true</code> in the <code>loaded</code> event.`);
-        passes++;
-      } else {
-        setCheck('apiready', loaded ? 'warn' : 'idle',
-          loaded
-            ? `APIServerIsReady was <code>false</code>. The integration is listening for the <code>apiPodIsReady</code> event as a fallback. API test below may fail until the API is ready.`
-            : `Waiting for <code>loaded</code> event.`
-        );
-      }
+        if (context.project && context.subProject) setCheck('scope', 'pass', 'Project ', { code: context.project }, ' · subproject ', { code: context.subProject })
+        else fail('scope', 'No project or subproject in loaded.')
 
-      // 8. Live API ping
-      if (session.token && session.backendUrl && session.subProjectId) {
-        const url = `${session.backendUrl}/API/v1.10/${session.projectId}/subProject/${session.subProjectId}/stagedAssets`;
-        try {
-          const res = await fetch(url, { headers: { 'Authorization': `Bearer ${session.token}` } });
-          if (res.ok) {
-            const data = await res.json();
-            const count = Array.isArray(data) ? data.length : Object.values(data).length;
-            setCheck('apiping', 'pass', `GET <code>/stagedAssets</code> → HTTP 200, ${count} asset(s) found.`);
-            passes++;
-          } else {
-            let hint = '';
-            if (res.status === 401) hint = `<br><strong>Fix:</strong> Token may be expired. Reload the integration.`;
-            if (res.status === 404) hint = `<br><strong>Fix:</strong> Check backendUrl (no trailing slash) and subProjectId.`;
-            setCheck('apiping', 'fail', `GET <code>/stagedAssets</code> → HTTP ${res.status} ${res.statusText}${hint}`);
-            fails++;
+        const current = bridge.context()
+        if (current.apiServerIsReady) setCheck('apiready', 'pass', 'The API server is ready.')
+        else setCheck('apiready', 'warn', { code: 'APIServerIsReady' }, ' is false. The page waits for ', { code: 'apiPodIsReady' }, '.')
+
+        if (current.apiServerIsReady && context.project && context.subProject) {
+          try {
+            const response = await bridge.apiFetch(subProjectPath('/stagedAssets'))
+            if (response.ok) setCheck('apiping', 'pass', 'GET ', { code: '/stagedAssets' }, ` → HTTP ${response.status}.`)
+            else fail('apiping', 'GET ', { code: '/stagedAssets' }, ` → HTTP ${response.status}. `, { 401: 'Token rejected: reopen the panel.', 403: 'Missing rights.', 404: 'Check the project and subproject IDs.' }[response.status] || '')
+          } catch (error) {
+            fail('apiping', 'Request failed: ', { code: error.message }, '. Possible causes: CORS, network, or VPN.')
           }
-        } catch (err) {
-          setCheck('apiping', 'fail',
-            `Network error: <code>${err.message}</code><br><br>` +
-            `<strong>Possible causes:</strong><br>` +
-            `• CORS — the FieldTwin backend may not allow requests from this origin<br>` +
-            `• Network / VPN — check your connection<br>` +
-            `• Wrong backendUrl`
-          );
-          fails++;
-        }
-      } else {
-        setCheck('apiping', 'idle', `Cannot run — waiting for session data (token, backendUrl, subProjectId).`);
+        } else setCheck('apiping', 'idle', 'Skipped until the API is ready.')
       }
 
-      // Summary
-      const summary = document.getElementById('diag-summary');
-      summary.style.display = 'block';
-      if (fails === 0) {
-        summary.style.color = '#4ade80';
-        summary.innerHTML = `✓ All checks passed (${passes}/${passes + fails}). Your integration is fully connected and the API is reachable.`;
-      } else {
-        summary.style.color = '#f87171';
-        summary.innerHTML = `${fails} check(s) failed. Review the items above — each includes a fix suggestion.`;
-      }
+      const summary = $('diag-summary')
+      summary.style.display = 'block'
+      summary.style.color = fails === 0 ? '#4ade80' : '#f87171'
+      summary.textContent = fails === 0
+        ? '✓ All checks passed. The integration is connected and the API is reachable.'
+        : `${fails} check(s) failed. Each item above includes a fix.`
     }
 
-    function resetDiagnostics() {
-      ['protocol','iframe','loaded','token','backendurl','subproject','apiready','apiping'].forEach(id => {
-        setCheck(id, 'idle', null);
-        const icon = document.getElementById(`chk-${id}-icon`);
-        if (icon) icon.textContent = '?';
-      });
-      document.getElementById('diag-summary').style.display = 'none';
-    }
+    $('btn-diag-run').addEventListener('click', runDiagnostics)
+    $('btn-diag-reset').addEventListener('click', () => { renderChecks(); $('diag-summary').style.display = 'none' })
+    renderChecks()
 
-    // Auto-run diagnostics after 10 seconds if still not connected
+    // ---- Connect the UI to the bridge and replay anything that arrived first ----
+
+    uiHandlers = {
+      ready: ({ context: ctx, fields }) => onReady(ctx, fields),
+      event: onEvent,
+      rejected: onRejected,
+    }
+    for (const [kind, payload] of earlyNotices.splice(0)) uiHandlers[kind](payload)
+    renderSetupNotice()
+
     setTimeout(() => {
-      if (!loaded) {
-        setStatus('error', 'No response from FieldTwin yet');
-        addLog('error', 'No loaded event after 10s — check the Troubleshoot tab');
+      if (!context) {
+        setStatus('error', 'No trusted response from FieldTwin yet')
+        addLog('error', 'No trusted loaded after 10s — open the Troubleshoot tab')
+        runDiagnostics()
       }
-    }, 10000);
+    }, 10000)
   </script>
 
 </body>

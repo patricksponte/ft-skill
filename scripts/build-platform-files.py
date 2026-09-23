@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Build the per-tool instruction files in platforms/ from the two canonical guides.
+"""Build the per-tool instruction files in platforms/ and the root Hello World copy.
 
 Tools that do not support Agent Skills read one instruction file from a fixed location. Each
 file in platforms/ is a small tool-specific header followed by a canonical guide, so the tools
 cannot drift apart. Edit fieldtwin-instructions.md or api-quick-reference.md, then run this.
+
+The root index.html is a byte-for-byte copy of the create skill's Hello World asset, kept so a
+repository-root static host (for example GitHub Pages) keeps serving the current page.
 
 Usage:
     python3 scripts/build-platform-files.py          # write platforms/*
@@ -42,6 +45,11 @@ CLAUDE_CODE_HEADER = """# FieldTwin (legacy single-file command)
 
 """
 
+HELLO_WORLD = REPOSITORY_ROOT / "skills/create-fieldtwin-integration/assets/hello-world/index.html"
+
+# (output file, source file) copied unchanged
+COPIES = (("index.html", HELLO_WORLD),)
+
 # (output file, source guide, header written before the note)
 TARGETS = (
     ("platforms/.cursorrules", FULL_GUIDE, ""),
@@ -61,9 +69,10 @@ def render(source: Path, header: str) -> str:
 def main() -> int:
     check = "--check" in sys.argv[1:]
     stale = []
-    for relative_path, source, header in TARGETS:
+    outputs = [(path, render(source, header)) for path, source, header in TARGETS]
+    outputs += [(path, source.read_text(encoding="utf-8")) for path, source in COPIES]
+    for relative_path, output in outputs:
         target = REPOSITORY_ROOT / relative_path
-        output = render(source, header)
         if check:
             current = target.read_text(encoding="utf-8") if target.is_file() else ""
             if current != output:
