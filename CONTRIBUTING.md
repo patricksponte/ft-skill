@@ -13,3 +13,18 @@ Before opening a change:
 7. Run `python3 scripts/validate_package.py` and `skills-ref validate` for every changed skill before publishing.
 
 Protocol changes should include both positive and negative tests: correct payload/routing, malformed input, wrong origin/source, token refresh, and teardown.
+
+## Toolkit files outside `skills/`
+
+8. Edit `fieldtwin-instructions.md` or `api-quick-reference.md`, never the copies in `platforms/`.
+   Run `python3 scripts/build-platform-files.py` to regenerate them.
+9. Never edit `api-reference.json` by hand. Run `python3 scripts/build-api-reference.py` after the
+   v1.10 attribute catalog changes.
+10. Keep the MCP server in `packages/fieldtwin-mcp`. Do not reference it from a `SKILL.md`; the
+    skills stay documentation only. Route changes must match the v1.10 catalog, and write tools
+    must stay behind `FIELDTWIN_MCP_ALLOW_WRITES`.
+11. Run `python3 scripts/build-api-reference.py --check`, `python3 scripts/build-platform-files.py --check`,
+    and `node --check packages/fieldtwin-mcp/index.js` before publishing.
+12. Propose fixes to upstream skill files in
+    [XvisionAS/fieldtwin-agent-skills](https://github.com/XvisionAS/fieldtwin-agent-skills) too, so
+    the next upstream merge does not conflict.

@@ -21,3 +21,17 @@ jobs:
 
       - name: Validate skill package
         run: python3 scripts/validate_package.py
+
+      - name: Check generated files are up to date
+        run: |
+          python3 scripts/build-api-reference.py --check
+          python3 scripts/build-platform-files.py --check
+
+      - name: Check MCP server syntax
+        run: node --check packages/fieldtwin-mcp/index.js
+
+      - name: Check shell scripts
+        run: |
+          bash -n create.sh
+          bash -n install.sh
+          bash -n update.sh
