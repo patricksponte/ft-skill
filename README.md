@@ -1007,6 +1007,8 @@ code --install-extension fieldtwin-integration-kit.vsix
 ```
 
 See [packages/vscode-extension/README.md](packages/vscode-extension/README.md).
+The [user manual](packages/vscode-extension/MANUAL.md) covers installation, every feature,
+settings, and troubleshooting.
 
 ## Contributing
 

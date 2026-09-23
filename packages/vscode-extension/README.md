@@ -12,6 +12,9 @@ assistant reads, a FieldTwin MCP server, and a simulator for the host protocol.
 Everything ships inside the extension. Nothing is downloaded at runtime, so it works
 offline and behind a corporate proxy.
 
+The [user manual](MANUAL.md) covers installation, every feature, settings and
+troubleshooting step by step.
+
 ---
 
 ## Start here
