@@ -31,6 +31,7 @@ repository with its history, so upstream releases can be pulled in (see
 | Set up an AI tool that does not support skills | [Platform setup](#platform-setup) |
 | Understand the security rules the code follows | [Security model](#security-model) |
 | Let an AI call my live FieldTwin data | [MCP server (optional)](#mcp-server-optional) |
+| Use FieldTwin from VS Code | [VS Code extension](#vs-code-extension) |
 | Verify my connection | [Hello World](#hello-world) |
 | Contribute or validate a change | [Contributing](#contributing) |
 
@@ -985,6 +986,29 @@ links, one recipe fix) so merges stay easy. Changes that belong upstream should 
 there.
 
 ---
+
+## VS Code extension
+
+`packages/vscode-extension/` is the **FieldTwin Integration Kit** for VS Code. It is built from
+this repository: the Agent Skills, guides, templates, and MCP server are copied in at build
+time, so the extension always ships what is here.
+
+- **New Integration** wizard with the secure Hello World and your FieldTwin origin filled in.
+- **AI agent files** for Claude Code (the Agent Skills), Copilot, Cursor, Windsurf, Cline,
+  Continue, Antigravity, and Aider.
+- **`@fieldtwin`** chat participant plus `#fieldtwinDocs` and `#fieldtwinApi` tools.
+- **MCP server** registered with the editor, token kept in the editor secret store, read-only
+  by default.
+- **Host simulator** for the `postMessage` protocol.
+
+```bash
+cd packages/vscode-extension && npm ci && npm run package
+code --install-extension fieldtwin-integration-kit.vsix
+```
+
+See [packages/vscode-extension/README.md](packages/vscode-extension/README.md).
+The [user manual](packages/vscode-extension/MANUAL.md) covers installation, every feature,
+settings, and troubleshooting.
 
 ## Contributing
 

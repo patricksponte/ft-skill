@@ -1,0 +1,233 @@
+:root {
+  --gap: 12px;
+  --radius: 6px;
+  --ok: var(--vscode-testing-iconPassed, #3fb950);
+  --wait: var(--vscode-testing-iconQueued, #d29922);
+  --bad: var(--vscode-testing-iconFailed, #f85149);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+}
+
+/* ── top bar ───────────────────────────────────────────── */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editorWidget-background);
+  flex: 0 0 auto;
+}
+.spacer { flex: 1; }
+
+.status {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.status--waiting { background: var(--wait); }
+.status--ok      { background: var(--ok); }
+.status--bad     { background: var(--bad); }
+
+.bar code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+  opacity: .7;
+}
+
+button {
+  font-family: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+button:hover { background: var(--vscode-button-hoverBackground); }
+
+.ghost {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+.ghost:hover { background: var(--vscode-button-secondaryHoverBackground); }
+.small { font-size: 11px; padding: 2px 8px; }
+
+/* ── layout ────────────────────────────────────────────── */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  min-height: 0;
+}
+@media (max-width: 860px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+}
+
+.stage {
+  min-width: 0;
+  background: var(--vscode-editor-background);
+  /* A hint of the FieldTwin 3D scene the integration normally sits beside. */
+  background-image:
+    linear-gradient(var(--vscode-panel-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--vscode-panel-border) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 1;
+}
+#frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--vscode-editor-background);
+}
+
+.inspector {
+  border-left: 1px solid var(--vscode-panel-border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--vscode-sideBar-background);
+}
+
+.panel {
+  padding: var(--gap);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  min-height: 0;
+}
+.panel--grow { flex: 1; display: flex; flex-direction: column; border-bottom: 0; }
+
+h2 {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  opacity: .75;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.count {
+  font-variant-numeric: tabular-nums;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  border-radius: 10px;
+  padding: 0 6px;
+  font-size: 10px;
+  letter-spacing: 0;
+}
+h2 .ghost { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+.hint {
+  margin: 0 0 10px;
+  font-size: 11px;
+  opacity: .65;
+  line-height: 1.5;
+}
+.hint code { font-family: var(--vscode-editor-font-family); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions button { font-family: var(--vscode-editor-font-family); font-size: 11px; }
+
+details { margin-top: 10px; font-size: 11px; }
+summary { cursor: pointer; opacity: .75; }
+details pre {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 10.5px;
+  background: var(--vscode-textCodeBlock-background);
+  padding: 8px;
+  border-radius: var(--radius);
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+/* ── message log ───────────────────────────────────────── */
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.log li {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+.log details { margin: 0; }
+.log summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 8px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+  background: var(--vscode-editorWidget-background);
+  opacity: 1;
+}
+.log .event { font-weight: 600; }
+.log .time { margin-left: auto; opacity: .5; font-size: 10px; }
+.log .replied {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  background: var(--ok);
+  color: var(--vscode-editor-background);
+  border-radius: 3px;
+  padding: 1px 4px;
+}
+.log pre {
+  margin: 0;
+  padding: 8px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 10.5px;
+  line-height: 1.5;
+  overflow-x: auto;
+  background: var(--vscode-textCodeBlock-background);
+}
+
+/* ── toast, mirroring what FieldTwin shows ─────────────── */
+#toasts {
+  position: fixed;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+.toast {
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .35);
+  animation: rise .18s ease-out;
+}
+.toast--success { background: #2ea043; }
+.toast--info    { background: #1f6feb; }
+.toast--warning { background: #9e6a03; }
+.toast--error   { background: #da3633; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}

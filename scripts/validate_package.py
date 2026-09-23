@@ -88,6 +88,8 @@ SCANNED_SUFFIXES = {
 # Local, untracked state that is never published: Git metadata, installed dependencies, and
 # per-user agent settings.
 LOCAL_ONLY_PARTS = {".git", "node_modules", ".claude"}
+# Build output (gitignored): the VS Code extension bundles third-party code into out/.
+LOCAL_ONLY_PARTS = LOCAL_ONLY_PARTS | {"out"}
 MARKDOWN_LINK_PATTERN = re.compile(
     r"!?\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+['\"][^)]*['\"])?\s*\)"
 )
