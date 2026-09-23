@@ -15,6 +15,12 @@ This repository combines two things:
    skills, per-tool instruction files, project scripts, server templates, and an optional,
    separately packaged MCP server.
 
+> **Using VS Code?** Install the **FieldTwin Integration Kit** extension from
+> [`packages/vscode-extension/`](packages/vscode-extension/): a New Integration wizard, the
+> Agent Skills and AI assistant files, `@fieldtwin` in chat, the MCP server, and a host
+> simulator — built from this repository. See the [VS Code extension](#vs-code-extension)
+> section and the [user manual](packages/vscode-extension/MANUAL.md).
+
 The skills are merged from the official
 [XvisionAS/fieldtwin-agent-skills](https://github.com/XvisionAS/fieldtwin-agent-skills)
 repository with its history, so upstream releases can be pulled in (see
@@ -137,6 +143,33 @@ the Hello World shows the origin of any rejected connection so the user can conf
 
 ### IDE Extensions
 
+
+<details>
+<summary><strong>VS Code — FieldTwin Integration Kit extension</strong></summary>
+
+**Best option:** the extension in [`packages/vscode-extension/`](packages/vscode-extension/)
+
+It sets up every AI assistant in VS Code at once and adds FieldTwin-specific tools:
+
+- **FieldTwin: New Integration…** creates a project with the secure Hello World and your
+  FieldTwin origin already allowlisted.
+- **FieldTwin: Add AI Agent Files to Workspace** writes the Agent Skills for Claude Code and
+  the rule files for Copilot, Cursor, Windsurf, Cline, Continue, Antigravity, and Aider.
+- **`@fieldtwin`**, `#fieldtwinDocs`, and `#fieldtwinApi` in Copilot Chat.
+- The **MCP server**, registered automatically, with the API token in the editor secret store
+  and read-only by default.
+
+Build and install it:
+
+```bash
+cd packages/vscode-extension
+npm ci && npm run package
+code --install-extension fieldtwin-integration-kit.vsix
+```
+
+Full instructions: [user manual](packages/vscode-extension/MANUAL.md).
+
+</details>
 
 <details>
 <summary><strong>GitHub Copilot</strong></summary>
@@ -926,6 +959,7 @@ ft-skill/
 ├── platforms/                                ← generated: per-tool copies of the guides
 │
 ├── packages/fieldtwin-mcp/                   ← optional MCP server (separate package)
+├── packages/vscode-extension/               ← VS Code extension (FieldTwin Integration Kit)
 ├── templates/{node,python}/                  ← local servers that serve public/
 ├── create.* / install.* / update.*           ← project scripts (bash and PowerShell)
 │
