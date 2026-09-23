@@ -86,10 +86,15 @@ Ask your AI "List my FieldTwin projects" to verify the connection.
 | Account | `get_users`, `get_user`, `get_usage`, `get_account_logs`, `get_integrations` |
 
 Routes follow the generated v1.10 catalog in
-`skills/develop-fieldtwin-integration/references/api-attributes-v1.10.json`. Four read routes
-are not in that catalog but are listed in the v1.10 guide as documented where available:
-`get_well_bores`, `get_well_bore`, `list_subprojects`, and `create_connections_batch`. Check
-them against your tenant's API portal before relying on them.
+`skills/develop-fieldtwin-integration/references/api-attributes-v1.10.json`. Three routes are
+not in that catalog but are listed in the v1.10 guide as documented where available:
+`get_well_bores`, `get_well_bore`, and `create_connections_batch`. Check them against your
+tenant's API portal before relying on them.
+
+Verified with read-only calls against a FieldTwin demo tenant (2026-09-23): qualified
+`{id}:{id}` subproject paths return 200 (encoded or not), the `-` project wildcard returns 404,
+`project/-/metaDataDefinitions` and `frames` return 404, and `GET /{projectId}/subProjects`
+returns 404, so `list_subprojects` reads the subprojects nested in `GET /API/v1.10/`.
 
 ## Changes in 3.0.0
 
@@ -97,6 +102,7 @@ them against your tenant's API portal before relying on them.
 - Write tools are disabled unless `FIELDTWIN_MCP_ALLOW_WRITES=true`.
 - Removed the `-` project fallback. A real project ID is required.
 - Subproject IDs are qualified as `{id}:{streamId}`.
+- `list_subprojects` reads the account root instead of the non-existent `/{projectId}/subProjects`.
 - Batch tools send the documented `{ "items": [...] }` envelope instead of a bare array.
 - Staged assets use the documented `asset` field instead of `stagedAssetSymbolId`.
 - `status` accepts the documented underlay values `warning`, `danger`, `primary`, `success`,

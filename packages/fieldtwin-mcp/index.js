@@ -135,11 +135,19 @@ server.tool(
 
 server.tool(
   'list_subprojects',
-  'List all subprojects inside a project.',
+  'List all subprojects inside a project. Keys are the qualified {subProjectId}:{streamId} IDs.',
   {
     projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ projectId }) => ok(await api('GET', `/API/v1.10/${enc(resolveProject(projectId))}/subProjects`))
+  // There is no GET /{projectId}/subProjects route (it returns 404). The account root lists every
+  // project with its subprojects nested under `subProjects`.
+  async ({ projectId }) => {
+    const id = resolveProject(projectId);
+    const account = await api('GET', '/API/v1.10/');
+    const project = account?.projects?.[id];
+    if (!project) throw new Error(`Project ${id} was not found in this account. Call list_projects to find it.`);
+    return ok(project.subProjects || {});
+  }
 );
 
 server.tool(
