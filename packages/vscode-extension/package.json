@@ -1,0 +1,250 @@
+{
+  "name": "fieldtwin-integration-kit",
+  "displayName": "FieldTwin Integration Kit",
+  "description": "Teach any AI assistant to build secure FieldTwin integrations — the FutureOn Agent Skills, scaffolding, agent context files, an MCP server, and a FieldTwin host simulator.",
+  "version": "0.2.0",
+  "publisher": "futureon",
+  "license": "ISC",
+  "icon": "images/icon.png",
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "AI",
+    "Chat",
+    "Snippets",
+    "Other"
+  ],
+  "keywords": [
+    "fieldtwin",
+    "futureon",
+    "digital twin",
+    "subsea",
+    "integration"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/patricksponte/ft-skill",
+    "directory": "packages/vscode-extension"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "fieldtwin.newIntegration",
+        "title": "New Integration…",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.addAgentFiles",
+        "title": "Add AI Agent Files to Workspace",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.updateAgentFiles",
+        "title": "Update AI Agent Files",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.preview",
+        "title": "Preview Integration in Simulator",
+        "category": "FieldTwin",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "fieldtwin.stopPreview",
+        "title": "Stop Preview Server",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.setApiToken",
+        "title": "Set API Token",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.clearApiToken",
+        "title": "Clear API Token",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.openReference",
+        "title": "Open API Reference",
+        "category": "FieldTwin"
+      },
+      {
+        "command": "fieldtwin.writeMcpConfig",
+        "title": "Write MCP Server Config to Workspace",
+        "category": "FieldTwin"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "fieldtwin.preview",
+          "when": "resourceExtname == .html && fieldtwin.isIntegration",
+          "group": "navigation"
+        }
+      ]
+    },
+    "chatParticipants": [
+      {
+        "id": "fieldtwin.agent",
+        "name": "fieldtwin",
+        "fullName": "FieldTwin",
+        "description": "Build FieldTwin integrations — postMessage events, REST API, resources",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "new",
+            "description": "Scaffold a new FieldTwin integration project"
+          },
+          {
+            "name": "api",
+            "description": "Look up a FieldTwin REST API endpoint"
+          },
+          {
+            "name": "events",
+            "description": "Explain the postMessage events and messages"
+          },
+          {
+            "name": "debug",
+            "description": "Diagnose a broken FieldTwin integration"
+          }
+        ],
+        "disambiguation": [
+          {
+            "category": "fieldtwin",
+            "description": "The user is building, debugging or asking about a FieldTwin integration — an iframe app embedded in the FieldTwin digital twin platform that talks over window.postMessage and the FieldTwin REST API.",
+            "examples": [
+              "How do I react to asset selection in FieldTwin?",
+              "Create a FieldTwin integration that lists all wells",
+              "My integration never receives the loaded event"
+            ]
+          }
+        ]
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "fieldtwin_search_docs",
+        "displayName": "Search FieldTwin docs",
+        "modelDescription": "Search the bundled FieldTwin integration documentation (postMessage events, messages, resource types, authentication, troubleshooting). Returns the matching documentation sections verbatim. Use this before writing any FieldTwin integration code.",
+        "toolReferenceName": "fieldtwinDocs",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(book)",
+        "tags": [
+          "fieldtwin"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Keywords to search for, e.g. 'visualFilterToggle', 'createResources', 'stagedAsset status'."
+            }
+          },
+          "required": [
+            "query"
+          ]
+        }
+      },
+      {
+        "name": "fieldtwin_lookup_api",
+        "displayName": "Look up FieldTwin API endpoint",
+        "modelDescription": "Look up FieldTwin REST API v1.10 routes by resource name or path fragment. Returns method, path and summary for each match, plus the conventions every call must follow (API root, qualified subproject ID, authentication). Use this instead of guessing endpoint paths.",
+        "toolReferenceName": "fieldtwinApi",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(symbol-interface)",
+        "tags": [
+          "fieldtwin"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "resource": {
+              "type": "string",
+              "description": "Resource or path fragment, e.g. 'stagedAssets', 'wells', 'metadatadefinitions', 'batch', 'connection'."
+            }
+          },
+          "required": [
+            "resource"
+          ]
+        }
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "fieldtwin.mcp",
+        "label": "FieldTwin"
+      }
+    ],
+    "configuration": {
+      "title": "FieldTwin",
+      "properties": {
+        "fieldtwin.backendUrl": {
+          "type": "string",
+          "default": "https://backend.fieldtwin.com",
+          "markdownDescription": "FieldTwin backend base URL, with no trailing slash. Used by the MCP server and by the preview simulator."
+        },
+        "fieldtwin.projectId": {
+          "type": "string",
+          "default": "",
+          "description": "Default FieldTwin project ID. Most subproject-scoped API calls require a real project ID."
+        },
+        "fieldtwin.subProjectId": {
+          "type": "string",
+          "default": "",
+          "description": "Default FieldTwin subproject ID. A bare ID targets the main stream ({id}:{id}); use {id}:{streamId} for a branch."
+        },
+        "fieldtwin.apiVersion": {
+          "type": "string",
+          "default": "v1.10",
+          "description": "FieldTwin API version used in generated code."
+        },
+        "fieldtwin.mcp.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Offer the bundled FieldTwin MCP server to AI chat clients in this editor."
+        },
+        "fieldtwin.mcp.allowWrites": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Let the MCP server create, update and delete FieldTwin data. Off by default: the server runs with your account-level API token, so an agent can only read until you turn this on."
+        },
+        "fieldtwin.preview.port": {
+          "type": "number",
+          "default": 5174,
+          "description": "Port for the preview dev server. If busy, the next free port is used."
+        },
+        "fieldtwin.preview.autoReload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Reload the simulator automatically when a file in the integration folder changes."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node20",
+    "build:mcp": "esbuild assets/mcp-server/index.js --bundle --outfile=out/mcp/index.mjs --format=esm --platform=node --target=node20",
+    "compile": "npm run build:ext && npm run build:mcp",
+    "watch": "npm run sync && npm run build:mcp && npm run build:ext -- --sourcemap --watch",
+    "typecheck": "tsc --noEmit",
+    "vscode:prepublish": "npm run sync && npm run typecheck && npm run compile -- --minify",
+    "package": "vsce package --out fieldtwin-integration-kit.vsix",
+    "test": "npm run sync && npm run compile && node scripts/run-tests.mjs",
+    "sync": "bash scripts/sync-assets.sh"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.101.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "zod": "^3.24.0"
+  }
+}
