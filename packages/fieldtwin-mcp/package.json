@@ -1,0 +1,23 @@
+{
+  "name": "fieldtwin-mcp",
+  "version": "3.0.0",
+  "description": "Optional MCP server that lets AI clients call the FieldTwin API v1.10 with an account API token. Separate from the FieldTwin Agent Skills.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "check": "node --check index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "zod": "^3.24.0"
+  },
+  "license": "ISC",
+  "private": true,
+  "bin": {
+    "fieldtwin-mcp": "index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
