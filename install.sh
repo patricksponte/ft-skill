@@ -4,6 +4,8 @@
 # for each AI coding tool you use in this project.
 
 REPO_BASE="https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+ARCHIVE_URL="https://codeload.github.com/patricksponte/ft-skill/tar.gz/refs/heads/main"
+SKILLS=(create-fieldtwin-integration develop-fieldtwin-integration)
 
 BOLD='\033[1m'
 GREEN='\033[0;32m'
@@ -50,6 +52,27 @@ guard() {
 
 separator() { echo -e "${DIM}  ──────────────────────────────────────────────────────${NC}"; }
 
+# Install the canonical Agent Skills (skills/<name>/SKILL.md + references) into a directory.
+install_skills() {
+  local dest="$1" tmp root skill
+  tmp="$(mktemp -d)" || return 1
+  if command -v curl &>/dev/null; then
+    curl -sSfL "$ARCHIVE_URL" | tar -xz -C "$tmp"
+  else
+    wget -qO- "$ARCHIVE_URL" | tar -xz -C "$tmp"
+  fi || { rm -rf "$tmp"; echo -e "  ${RED}Download failed: skills archive${NC}"; return 1; }
+  root="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -1)"
+  mkdir -p "$dest"
+  for skill in "${SKILLS[@]}"; do
+    if [[ ! -f "$root/skills/$skill/SKILL.md" ]]; then
+      rm -rf "$tmp"; echo -e "  ${RED}Skill missing from archive: $skill${NC}"; return 1
+    fi
+    rm -rf "${dest:?}/$skill"
+    cp -R "$root/skills/$skill" "$dest/$skill"
+  done
+  rm -rf "$tmp"
+}
+
 # ── Header ────────────────────────────────────────────────────────────────────
 
 echo ""
@@ -67,22 +90,19 @@ echo ""
 
 echo -e "${BOLD}  [1/7] Claude Code${NC}"
 echo ""
-echo "  Registers a /fieldtwin slash command in Claude Code and places"
-echo "  the full API reference where the command can read it."
+echo "  Installs the FieldTwin Agent Skills. Claude Code loads them"
+echo "  automatically when you work on a FieldTwin integration."
 echo ""
-echo -e "  ${DIM}Files that will be created:${NC}"
-echo "    .claude/skills/fieldtwin.md        ← /fieldtwin slash command"
-echo "    .claude/fieldtwin-instructions.md  ← complete agent reference"
-echo "    .claude/api-reference.json         ← all 120+ REST endpoints"
+echo -e "  ${DIM}Directories that will be created:${NC}"
+echo "    .claude/skills/create-fieldtwin-integration/   ← scaffold, Hello World, hosting"
+echo "    .claude/skills/develop-fieldtwin-integration/  ← bridge, messages, API catalogs"
 echo ""
 if ask "Set up for Claude Code?"; then
   ok=true
-  guard ".claude/skills/fieldtwin.md"       || ok=false
-  $ok && download "platforms/claude-code.md" ".claude/skills/fieldtwin.md"    || ok=false
-  $ok && download "fieldtwin-instructions.md"      ".claude/fieldtwin-instructions.md" || ok=false
-  $ok && download "api-reference.json"             ".claude/api-reference.json"        || ok=false
+  for skill in "${SKILLS[@]}"; do guard ".claude/skills/$skill/SKILL.md" || ok=false; done
+  $ok && install_skills ".claude/skills" || ok=false
   if $ok; then
-    echo -e "  ${GREEN}✓ Done. Type /fieldtwin in Claude Code to activate the toolkit.${NC}"
+    echo -e "  ${GREEN}✓ Done. Ask Claude Code about your FieldTwin integration; the skills load on demand.${NC}"
     installed+=("Claude Code")
   fi
 else
@@ -237,7 +257,7 @@ if ask "Set up for OpenCode?"; then
     if ask "Also create .opencode.json with instructions + MCP config?"; then
       if guard ".opencode.json"; then
         download "platforms/opencode.json" ".opencode.json" && {
-          echo -e "  ${YELLOW}Edit .opencode.json: set the absolute path to mcp-server/index.js and your API token.${NC}"
+          echo -e "  ${YELLOW}Edit .opencode.json: set the absolute path to packages/fieldtwin-mcp/index.js and your API token.${NC}"
         }
       fi
     fi

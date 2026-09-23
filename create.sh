@@ -4,6 +4,9 @@
 # with the AI Agent Toolkit pre-configured and the Hello World ready to run.
 
 REPO_BASE="https://raw.githubusercontent.com/patricksponte/ft-skill/main"
+ARCHIVE_URL="https://codeload.github.com/patricksponte/ft-skill/tar.gz/refs/heads/main"
+HELLO_WORLD="skills/create-fieldtwin-integration/assets/hello-world/index.html"
+SKILLS=(create-fieldtwin-integration develop-fieldtwin-integration)
 
 # Allow interactive input even when piped via curl | bash
 exec < /dev/tty
@@ -39,6 +42,27 @@ ask() {
 }
 
 separator() { echo -e "${DIM}  ──────────────────────────────────────────────────────${NC}"; }
+
+# Install the canonical Agent Skills (skills/<name>/SKILL.md + references) into a directory.
+install_skills() {
+  local dest="$1" tmp root skill
+  tmp="$(mktemp -d)" || return 1
+  if command -v curl &>/dev/null; then
+    curl -sSfL "$ARCHIVE_URL" | tar -xz -C "$tmp"
+  else
+    wget -qO- "$ARCHIVE_URL" | tar -xz -C "$tmp"
+  fi || { rm -rf "$tmp"; echo -e "  ${RED}Download failed: skills archive${NC}"; return 1; }
+  root="$(find "$tmp" -mindepth 1 -maxdepth 1 -type d | head -1)"
+  mkdir -p "$dest"
+  for skill in "${SKILLS[@]}"; do
+    if [[ ! -f "$root/skills/$skill/SKILL.md" ]]; then
+      rm -rf "$tmp"; echo -e "  ${RED}Skill missing from archive: $skill${NC}"; return 1
+    fi
+    rm -rf "${dest:?}/$skill"
+    cp -R "$root/skills/$skill" "$dest/$skill"
+  done
+  rm -rf "$tmp"
+}
 
 # ── Prerequisite check — curl or wget ────────────────────────────────────────
 
@@ -176,9 +200,37 @@ fi
 
 echo ""
 
-# ── Step 3 — AI tools ─────────────────────────────────────────────────────────
+# ── Step 4 — FieldTwin address ────────────────────────────────────────────────
 
-echo -e "${BOLD}  Step 4 — AI tools${NC}"
+echo -e "${BOLD}  Step 4 — FieldTwin address${NC}"
+echo ""
+echo "  The integration only accepts messages from your exact FieldTwin origin."
+echo "  Copy it from the browser address bar while FieldTwin is open."
+echo -e "  ${DIM}Example: https://yourcompany.fieldtwin.com   (Enter to set it later)${NC}"
+echo ""
+FIELDTWIN_ORIGIN=""
+while true; do
+  printf "  FieldTwin address: "
+  read -r FIELDTWIN_ORIGIN
+  if [[ -z "$FIELDTWIN_ORIGIN" ]]; then
+    echo -e "  ${YELLOW}Skipped. Edit ALLOWED_FIELDTWIN_ORIGINS in index.html before opening it in FieldTwin.${NC}"
+    break
+  fi
+  # Keep only scheme://host[:port]; drop any path or query. Only https is accepted.
+  FIELDTWIN_ORIGIN="$(printf '%s' "$FIELDTWIN_ORIGIN" | sed -E 's#^(https://[^/?]+).*#\1#')"
+  if [[ "$FIELDTWIN_ORIGIN" =~ ^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?$ ]]; then
+    echo -e "  ${GREEN}Allowed origin: $FIELDTWIN_ORIGIN${NC}"
+    break
+  fi
+  FIELDTWIN_ORIGIN=""
+  echo -e "  ${RED}Use an https:// address such as https://yourcompany.fieldtwin.com${NC}"
+done
+
+echo ""
+
+# ── Step 5 — AI tools ─────────────────────────────────────────────────────────
+
+echo -e "${BOLD}  Step 5 — AI tools${NC}"
 echo ""
 echo "  Which AI tools do you use? agent files will be placed"
 echo "  in the right location for each one."
@@ -205,9 +257,15 @@ echo ""
 
 mkdir -p "$PROJECT_DIR"
 
-# Hello World
-download "examples/hello-world/index.html" "$PROJECT_DIR/index.html" \
-  && echo -e "  ${GREEN}✓${NC} index.html"
+# Hello World — a static page is served from the project root; the Node/Python servers serve public/ only
+if [[ "$TEMPLATE" == "static" ]]; then PAGE="index.html"; else PAGE="public/index.html"; fi
+if download "$HELLO_WORLD" "$PROJECT_DIR/$PAGE"; then
+  if [[ -n "$FIELDTWIN_ORIGIN" ]]; then
+    sed -i.bak -E "s#^      'https://fieldtwin\.example',\$#      '${FIELDTWIN_ORIGIN}',#" "$PROJECT_DIR/$PAGE" \
+      && rm -f "$PROJECT_DIR/$PAGE.bak"
+  fi
+  echo -e "  ${GREEN}✓${NC} $PAGE"
+fi
 
 # Updater script
 download "update.sh" "$PROJECT_DIR/update.sh" \
@@ -232,8 +290,15 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+.claude/settings.local.json
 EOF
 echo -e "  ${GREEN}✓${NC} .gitignore"
+
+# Server environment example (origins for CSP frame-ancestors)
+if [[ "$TEMPLATE" != "static" ]]; then
+  printf 'FIELDTWIN_ORIGINS=%s\n' "${FIELDTWIN_ORIGIN:-https://yourcompany.fieldtwin.com}" > "$PROJECT_DIR/.env.example"
+  echo -e "  ${GREEN}✓${NC} .env.example"
+fi
 
 # Backend files
 case "$TEMPLATE" in
@@ -259,10 +324,8 @@ if [[ ${#AI_TOOLS[@]} -gt 0 ]]; then
   for tool in "${AI_TOOLS[@]}"; do
     case "$tool" in
       claude-code)
-        download "platforms/claude-code.md"  "$PROJECT_DIR/.claude/skills/fieldtwin.md" \
-        && download "fieldtwin-instructions.md"    "$PROJECT_DIR/.claude/fieldtwin-instructions.md" \
-        && download "api-reference.json"           "$PROJECT_DIR/.claude/api-reference.json" \
-        && echo -e "  ${GREEN}✓${NC} Claude Code  (.claude/)"
+        install_skills "$PROJECT_DIR/.claude/skills" \
+        && echo -e "  ${GREEN}✓${NC} Claude Code  (.claude/skills/: ${SKILLS[*]})"
         ;;
       copilot)
         download "platforms/copilot-instructions.md" "$PROJECT_DIR/.github/copilot-instructions.md" \
@@ -288,7 +351,7 @@ if [[ ${#AI_TOOLS[@]} -gt 0 ]]; then
         download "platforms/opencode.md"   "$PROJECT_DIR/.opencode/agents/fieldtwin.md" \
         && download "platforms/opencode.json" "$PROJECT_DIR/.opencode.json" \
         && echo -e "  ${GREEN}✓${NC} OpenCode  (.opencode/)"
-        echo -e "    ${YELLOW}→ Edit .opencode.json: set mcp-server path and API token${NC}"
+        echo -e "    ${YELLOW}→ Edit .opencode.json: set the packages/fieldtwin-mcp path and API token${NC}"
         ;;
     esac
   done
@@ -312,12 +375,12 @@ echo ""
 case "$TEMPLATE" in
   node)
     echo "  2. Install dependencies and start the server:"
-    echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && npm install && npm start${NC}"
+    echo -e "     ${CYAN}cd \"$PROJECT_DIR\" && npm install && FIELDTWIN_ORIGINS=${FIELDTWIN_ORIGIN:-<your-fieldtwin-origin>} npm start${NC}"
     echo ""
     echo "  3. In FieldTwin: Admin → Integrations → Create New Tab"
     echo "     Use http://localhost:3000 as the URL"
     echo ""
-    echo "  4. Add your logic in server.js — install any npm package you need."
+    echo "  4. Add your logic in server.js; the page lives in public/index.html."
     ;;
   python)
     echo "  2. Activate the virtual environment and install dependencies:"
@@ -326,18 +389,25 @@ case "$TEMPLATE" in
     echo -e "     ${CYAN}pip install -r requirements.txt${NC}"
     echo ""
     echo "  3. Start the server:"
-    echo -e "     ${CYAN}python app.py${NC}"
+    echo -e "     ${CYAN}FIELDTWIN_ORIGINS=${FIELDTWIN_ORIGIN:-<your-fieldtwin-origin>} python app.py${NC}"
     echo ""
     echo "  4. In FieldTwin: Admin → Integrations → Create New Tab"
     echo "     Use http://localhost:3000 as the URL"
     echo ""
-    echo "  5. Add your logic in app.py — install any pip package you need."
+    echo "  5. Add your logic in app.py; the page lives in public/index.html."
     ;;
   *)
-    echo "  2. In FieldTwin: Admin → Integrations → Create New Tab"
-    echo "     Use your hosted URL (e.g. GitHub Pages)."
+    echo "  2. Host index.html over HTTPS (for example GitHub Pages), then"
+    echo "     in FieldTwin: Admin → Integrations → Create New Tab with that URL."
     ;;
 esac
+
+echo ""
+echo "  In the FieldTwin tab settings, enable \"Use GET verb\" and"
+echo "  \"Do not pass arguments in URL\". Grant only the access you need."
+if [[ -z "$FIELDTWIN_ORIGIN" ]]; then
+  echo -e "  ${YELLOW}Remember: set ALLOWED_FIELDTWIN_ORIGINS in $PAGE to your FieldTwin address.${NC}"
+fi
 
 echo ""
 echo -e "  Open the integration in FieldTwin — you should see ${GREEN}Connected to FieldTwin!${NC}"

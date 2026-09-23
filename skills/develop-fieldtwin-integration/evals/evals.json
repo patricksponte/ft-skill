@@ -1,0 +1,143 @@
+{
+  "skill_name": "develop-fieldtwin-integration",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build a reusable browser bridge for a FieldTwin custom-tab integration. It must initialize from loaded, replace its token on tokenRefresh, work both embedded and popped out, call the current API, and include lifecycle tests.",
+      "expected_output": "A secure bridge and tests using exact origin/source validation, in-memory token replacement, parent/opener routing, current-token API headers, and complete teardown.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Add Operation Mode search to an equipment integration. Return grouped results with child rows, progress, a Font Awesome focus action, and an open command on double-click. Clearing the query must remove old results.",
+      "expected_output": "Documented Operation Search handlers with stable IDs, targeted inline and double-click actions, explicit focus behavior, clear handling, and interaction tests.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Review this FieldTwin postMessage client for origin validation, token handling, multiple tab instances, pop-out behavior, pending replies, and cleanup. Make only the smallest safe changes and add regression tests.",
+      "expected_output": "A focused review or patch that pins an exact trusted origin/source, keeps credentials in memory, targets the correct instance, supports opener/parent, and tears down all asynchronous work.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Create a FieldTwin integration manifest with two dynamic pages, a hidden background worker, explicit Designer and Operation visibility, and pop-out support. Include a secure dynamic-pages endpoint sample.",
+      "expected_output": "A least-privilege manifest, stable dynamic page paths, correct parent/background behavior, and a server sample that verifies the bearer JWT before making authorization decisions.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Publish pressure and temperature channels to FieldTwin Operation Mode. Register metadata, answer viewport-window data requests with transferable buffers, open the panel, and test correlation and teardown.",
+      "expected_output": "A time-series implementation using timeSeriesInfo, getTimeSeriesData, reqId, timeSeriesData, documented stride encoding, transferable buffers, and cleanup tests.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Debug a SvelteKit FieldTwin Account Settings integration running through local Tilt. The iframe stays on Connecting, local ingress is HTTP, the manifest icon is broken, and the first server request fails after the page finally connects. Fix the complete development path and update regression tests without exposing the integration token.",
+      "expected_output": "A layered diagnosis and implementation covering one mode-aware public origin, manifest and authenticated endpoint CORS, iframe response policy, parser-time loaded capture before SvelteKit imports, exact origin/source validation, Account Settings minimal bootstrap, base-path-safe local HTTP backend handling, the correct FieldTwin server JWT profile, provider configuration preflight before mutation, external Secret wiring, explicit local-versus-production callback cookies, credential-vault selection, and ingress-level plus automated verification.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Move GitHub provider setup into FieldTwin Account Settings. Reloading must not reveal any saved secret, resubmitting the exact unchanged secret must not rotate configuration, whitespace-only must be rejected, users connect with their normal GitHub identity, and repository hooks must be removed on unwatch or disconnect.",
+      "expected_output": "An account-admin-authorized DTO that may display the full account-keyed webhook URL but no separate raw route key; exact-empty preservation; opaque byte-for-byte or constant-time-digest comparison without trimming, case folding, or Unicode normalization; unchanged-value no-op persistence; vault-only credentials; a standard GitHub OAuth App state/S256-PKCE flow; bounded admin-capable repository discovery; admin:repo_hook or repo scope adequate for deletion; idempotent hook create/reconcile/rotate/delete with retryable cleanup failure; and distinct raw-body X-Hub-Signature-256 verification.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Implement GitLab.com plus approved self-managed GitLab connections for a FieldTwin deployment integration. Users need repository reads and project-hook management, OAuth tokens expire and rotate, and some older instances only support X-Gitlab-Token. Prevent SSRF, refresh races, signature downgrade, cross-account routing, and orphaned hooks.",
+      "expected_output": "An exact allowlisted HTTPS SaaS/self-managed GitLab origin with origin-pinned endpoints; one-time state and S256 PKCE; verified api and read_repository scopes; vaulted versioned access/refresh bundles with single-flight atomic replacement; bounded Maintainer-or-Owner project discovery; project-hook create/reconcile/rotate/delete; explicitly persisted gitlab-standard-webhooks-v1 Standard Webhooks HMAC/timestamp/replay verification or gitlab-legacy-x-gitlab-token-v1 exact token comparison with no header-driven fallback; safe-to-display account-keyed URL routing that is not authentication; and visible retryable cleanup failures before token revocation.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Write the exact FieldTwin postMessage calls to fetch a subproject by a fully qualified ID and a staged asset by ID, then select the staged asset without moving the camera. Explain every resource type value and the replies used for correlation.",
+      "expected_output": "A getResources request with data.items using canonical plural collection values subProjects and stagedAssets, a queryId correlated with resources.data.queryId, main-stream resourceId:resourceId behavior explained without falling back for a different stream, and a separate select request using singular type stagedAsset with focusSelection false. It must not use subProject or stagedAsset as resourceType values.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "Update FieldTwin Operation Mode system highlighting so a physical Bundle connection can expose Oil and Gas through connection-kind metadata, show both colors at once, and animate each constituent in its own direction. Preserve normal connections, segments, selection outlines, and live metadata edits. Decide whether this needs a new integration message.",
+      "expected_output": "A host-only design or implementation that resolves stable direct metadata-backed logical channels, resolves direction per channel through an existing or explicitly defined host data-model contract without matching display labels or inventing an integration field, computes channel-keyed flow and phase, renders stable lateral bands in one line pass, propagates every channel through segments and regeneration, coalesces metadata invalidation, preserves the single-channel path and outline precedence, adds lifecycle/rendering tests, and explicitly avoids changing postMessage or overloading visualFilteringUpdate.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "Fix this FieldTwin integration bridge: sendToHost always calls window.parent.postMessage, so requests stop reaching FieldTwin when the integration is popped out. Keep iframe support, exact-origin security, token refresh, and teardown, and explain the pop-out lifecycle.",
+      "expected_output": "A single bridge that resolves the iframe parent or pop-out opener during trusted loaded bootstrap, pins event.source and event.origin, sends every later request to that pinned window and exact origin, rejects a top-level page without a live opener, never falls back to window.parent, window.top, or a wildcard, and tests iframe, pop-out, missing-opener, wrong-source, and teardown behavior.",
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "My FieldTwin integration works in its iframe but loses window.opener when popped out. The Node server uses a generic security-header preset, ingress may append headers, and someone added X-IFrame-Allow hoping to fix it. Make the HTTP response compatible with both modes and define production tests.",
+      "expected_output": "A response contract that keeps exact HTTPS CSP frame-ancestors, removes blocking X-Frame-Options, makes the integration document COOP absent or unsafe-none, catches conflicting or duplicate COOP injected by middleware/ingress/CDN, explains that X-IFrame-Allow and X-Frame-Allow are non-standard and iframe allow/Permissions-Policy are capability controls, checks the FieldTwin opener policy too, avoids incompatible cross-origin isolation, and validates both final headers and a real FieldTwin-opened bidirectional pop-out.",
+      "files": []
+    },
+    {
+      "id": 13,
+      "prompt": "Implement a browser API client for a FieldTwin integration that is deployed to tenants on v1.10 today and will opt into v2.0 when available. It must read staged assets and connections, handle a non-main subproject stream, refresh its JWT, wait for the subproject API, and report useful errors without leaking credentials.",
+      "expected_output": "A version-deliberate client that preserves the trusted backend base path, uses the loaded APIVersion rather than silently upgrading, verifies tenant v2 OpenAPI before opt-in, builds Authorization from the current in-memory JWT, qualifies subProject:stream, uses the v1.10 project/subProject path or v2 subProjects stream GET with exact plural resourceTypes, never supplies internal ft-* context headers, handles readiness with bounded cancellable retry, parses by status and content type, and tests token refresh, branch routing, denial, not-ready, teardown, and path escape rejection.",
+      "files": []
+    },
+    {
+      "id": 14,
+      "prompt": "Import a related group of FieldTwin layout resources efficiently. Show the exact v1.10 multi-type batch and v2.0 stream batch payloads for staged assets, connections, and segments; then patch and delete selected resources. Explain ordering, globals, totalNumberOfItems, responses, atomicity, retries, and tests.",
+      "expected_output": "Exact v1.10 /batch and v2 subProjects stream POST/PATCH/DELETE envelopes; top-level versus type globals precedence in v1.10; per-item precedence; cautious totalNumberOfItems use; parent-before-child ordering; type-to-created-ID POST responses; empty PATCH/DELETE bodies; one-subproject/one-stream enforcement; local revert but no distributed-transaction claim; ft-batch-id treated as correlation rather than idempotency; reconciliation after ambiguous mutation failures; bounded chunking; and validation, dependency, permissions, partial-failure, branch, and token-refresh tests.",
+      "files": []
+    },
+    {
+      "id": 15,
+      "prompt": "Design a FieldTwin API v2.0 reporting client for account, project, subproject, and workflow data. Use resourceTypes/resourceIds filters, task filters, summary with external parents, schematics, crossings streaming, and document upload. Be explicit about which calls start a subproject pod and how responses are parsed.",
+      "expected_output": "Tenant-OAS-driven v2 endpoints with exact stream roots; ID-keyed plural GET maps; resourceTypes precedence and root inclusion; AND task filters with any-match list values; cheap account-side subProject summary with includeIds/noExternalParents and whole-call 502 handling; full subProject GET only for actual layout resources; SVG versus graph schematics parsing; cancellable chunked crossings; multipart upload without a manual boundary; account-side versus pod-backed readiness distinctions; and media-type, external-parent, filtering, authorization, and cleanup tests.",
+      "files": []
+    },
+    {
+      "id": 16,
+      "prompt": "List every FieldTwin API v2.0 attribute for stagedAssets in the subProjects stream. Separate GET, POST, and PATCH, include nested paths, required flags, allowed values and calculated/read-only fields, then show a safe create payload without copying GET-only fields.",
+      "expected_output": "A catalog-driven answer that queries v2.0 subProjects/stagedAssets independently for GET, POST, and PATCH; preserves nested [] paths and schema metadata; distinguishes manifest and stream-calculated response fields from Joi write fields; does not infer PATCH from POST; and builds the sample only from the POST schema.",
+      "files": []
+    },
+    {
+      "id": 17,
+      "prompt": "For FieldTwin API v1.10, enumerate the request and successful response attributes of the single staged-asset GET and create operations, including headers, path parameters, nested socket world positions, metadata, and optional fields. Explain inherited v1.9 provenance if present.",
+      "expected_output": "An operation-specific lookup of the effective v1.10 catalog with separate header/path/body/response locations, exact dotted nested paths such as sockets2d.worldPosition.x, explicit optional markers and sourceVersion/inherited provenance, without merging singular and plural endpoints or inventing runtime fields.",
+      "files": []
+    },
+    {
+      "id": 18,
+      "prompt": "Compare the accepted POST attributes for users in FieldTwin API v2.0 when called through the standalone users stream versus as an accounts-stream resource. Also list userRoles.userRights fields and explain dynamic custom-tab rights.",
+      "expected_output": "A per-stream Joi-schema comparison showing standalone user fields such as required mail and license values separately from account-scoped membership fields such as userRoleId, customerId, groups, administrator, assets, and folders; an expanded list of built-in userRights.can... booleans; and the documented open-object convention for canEditTab{customTabId}/canViewTab{customTabId} without fabricated IDs.",
+      "files": []
+    },
+    {
+      "id": 19,
+      "prompt": "List the complete request and successful response attributes for FieldTwin API v2.0 schematics, connectionCrossings, heightSamples, summary, hierarchy, and document upload. Preserve headers, query values, multipart fields, streaming notes, and SVG versus JSON response media types.",
+      "expected_output": "A path-based lookup across the flattened v2 OpenAPI operations with path/header/query/body/response locations; exact allowed values for schematics format, flowDirection and edgeType; crossings body and option headers; height-sample points/depths; summary and hierarchy variants; account/subproject/workflow upload field differences; and distinct image/svg+xml versus application/json response attributes.",
+      "files": []
+    },
+    {
+      "id": 20,
+      "prompt": "List every field an integration can receive in FieldTwin's loaded and tokenRefresh postMessage events. Separate normal Designer/pop-out bootstrap from Account Settings and Project Settings availability, identify sensitive and optional fields, and explain exactly how iframe and pop-out source/target validation differs.",
+      "expected_output": "A postMessage-catalog-driven answer selecting host-to-integration loaded and tokenRefresh variants; complete top-level field tables including token, backend/API/project context, customTabId, rights, theme/CSS, sessions and user fields; surface-dependent optionality rather than fabricated universal fields; JWT sensitivity and atomic replacement; pinned exact event.source/event.origin; parent for iframe, opener for pop-out; and fail-closed behavior without a live opener.",
+      "files": []
+    },
+    {
+      "id": 21,
+      "prompt": "Document FieldTwin's select postMessage in both directions without merging incompatible shapes. Include the host viewport notification, the host Operation Search result-selection message, integration select/selectByTag requests, Roberto part selection, focus behavior, sender correlation, transport-added fields, and a pop-out example.",
+      "expected_output": "Separate catalog queries/sections for the two host select variants and integration select/selectByTag; exact data-array versus data.items placement; singular type versus plural resourceTypes; selectedPartIndices/partIndex; explicit focusSelection false for selection-only; optional senderId plus host-derived customTabId asynchronous echo; sendMessage augmentation; and a bridge send through the pinned opener rather than window.parent or wildcard.",
+      "files": []
+    },
+    {
+      "id": 22,
+      "prompt": "Give me the complete FieldTwin postMessage contract for getResources, getVisibleResources, getResourcesByTags, updateTagsAnnotation, exportToGLTF, and exportToGeoJSON. Include every request/reply field, correlation, missing-resource/error behavior, JSON reply decorators, and the Blob exception.",
+      "expected_output": "Direction/event-specific catalog lookups with complete nested request and host reply fields; canonical plural resource collections and qualified ID behavior; queryId echo only where documented; annotation definitions and superseded/error replies; GeoJSON options and the requirement for queryId to receive JSON; GLTF options and Blob reply with no event/queryId/responseToEvent/doNotProcessMessage; and no invented correlation for uncorrelated operations.",
+      "files": []
+    },
+    {
+      "id": 23,
+      "prompt": "Enumerate all FieldTwin Operation Mode postMessage attributes for search results/progress/actions/double-click, visual filters/legend, context menus, operation panels, time-series metadata/window data/markers, and marker clicks. Distinguish top-level from data fields, instance targeting, recursive limits, transferable buffers, and acknowledgements.",
+      "expected_output": "Narrow catalog lookups covering both directions and each variant; exact top-level search/action/context fields versus nested registration fields; complete recursive search/action/filter/menu shapes and limits; trusted contributing-instance targeting; panel/dynamic path fields; timeSeriesInfo metadata; reqId-correlated getTimeSeriesData/timeSeriesData with stride 2/4 transferred buffers; marker registration/click fields; direct acknowledgement decorators; and iframe/pop-out-neutral envelopes sent through the pinned host window.",
+      "files": []
+    }
+  ]
+}

@@ -5,9 +5,13 @@ import { z }                   from 'zod';
 
 // ---- Configuration --------------------------------------------------------
 
-const BACKEND_URL = (process.env.FIELDTWIN_BACKEND_URL || '').replace(/\/$/, '');
-const API_TOKEN   = process.env.FIELDTWIN_API_TOKEN   || '';
-const DEFAULT_SUB = process.env.FIELDTWIN_SUBPROJECT_ID || '';
+const BACKEND_URL  = (process.env.FIELDTWIN_BACKEND_URL || '').replace(/\/$/, '');
+const API_TOKEN    = process.env.FIELDTWIN_API_TOKEN   || '';
+const DEFAULT_SUB  = process.env.FIELDTWIN_SUBPROJECT_ID || '';
+const DEFAULT_PROJ = process.env.FIELDTWIN_PROJECT_ID || '';
+// Mutating tools (POST/PATCH/DELETE) are refused unless explicitly enabled. The server runs with
+// an account-level API token, so an agent must not be able to change or delete data by default.
+const ALLOW_WRITES = process.env.FIELDTWIN_MCP_ALLOW_WRITES === 'true';
 
 function checkEnv() {
   if (!BACKEND_URL) throw new Error('FIELDTWIN_BACKEND_URL is not set. Add it to your MCP server env config.');
@@ -18,31 +22,65 @@ function checkEnv() {
 
 async function api(method, path, body) {
   checkEnv();
-  const opts = {
-    method,
-    headers: { token: API_TOKEN, 'Content-Type': 'application/json' }
-  };
-  if (body !== undefined) opts.body = JSON.stringify(body);
+  if (method !== 'GET' && !ALLOW_WRITES) {
+    throw new Error(
+      `Refusing ${method} ${path}: write tools are disabled. ` +
+      'Set FIELDTWIN_MCP_ALLOW_WRITES=true in the MCP server env to allow changes.'
+    );
+  }
+
+  // The account API token uses the `token` header. Never also send `Authorization`.
+  const opts = { method, headers: { token: API_TOKEN }, redirect: 'error' };
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
 
   const res = await fetch(`${BACKEND_URL}${path}`, opts);
 
   if (!res.ok) {
     const text = await res.text().catch(() => '');
-    throw new Error(`FieldTwin API ${res.status} ${res.statusText}: ${text}`);
+    throw new Error(`FieldTwin API ${res.status} ${res.statusText}: ${text.slice(0, 2000)}`);
   }
-  return res.status === 204 ? { success: true } : res.json();
+
+  // Successful PATCH/DELETE and batch mutations can return an empty body, and some endpoints
+  // return non-JSON media types. Parse by Content-Type instead of assuming JSON.
+  const contentType = res.headers.get('content-type') || '';
+  const text = await res.text();
+  if (!text) return { success: true, status: res.status };
+  if (contentType.includes('application/json')) return JSON.parse(text);
+  return { status: res.status, contentType, body: text };
 }
 
+// Encode every path segment so an ID cannot change the route.
+const enc = (value) => encodeURIComponent(String(value));
+
+function resolveProject(projectId) {
+  const id = projectId || DEFAULT_PROJ;
+  if (!id) throw new Error(
+    'projectId is required. Pass it as a tool argument or set FIELDTWIN_PROJECT_ID in the server env. ' +
+    'Call list_projects to find it.'
+  );
+  return id;
+}
+
+// v1.10 subproject routes take a qualified branch ID: {subProjectId}:{streamId}.
+// The main stream uses the subproject's own ID as its stream ID, so an unqualified ID is
+// qualified as {id}:{id}. Pass an already qualified ID to target another branch.
 function resolveSub(subProjectId) {
   const id = subProjectId || DEFAULT_SUB;
   if (!id) throw new Error(
     'subProjectId is required. Either pass it as a tool argument or set FIELDTWIN_SUBPROJECT_ID in the server env.'
   );
-  return id;
+  return id.includes(':') ? id : `${id}:${id}`;
 }
 
-const BASE = (subProjectId) =>
-  `/API/v1.10/-/subProject/${resolveSub(subProjectId)}`;
+const BASE = (subProjectId, projectId) =>
+  `/API/v1.10/${enc(resolveProject(projectId))}/subProject/${enc(resolveSub(subProjectId))}`;
+
+// Connection and staged-asset underlay status values documented by the v1.10 API.
+const STATUS = z.enum(['warning', 'danger', 'primary', 'success']).nullable()
+  .describe("Underlay status: 'warning' | 'danger' | 'primary' | 'success', or null to clear");
 
 function ok(data) {
   return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
@@ -50,7 +88,7 @@ function ok(data) {
 
 // ---- Server ---------------------------------------------------------------
 
-const server = new McpServer({ name: 'fieldtwin', version: '2.1.0' });
+const server = new McpServer({ name: 'fieldtwin', version: '3.0.0' });
 
 // ==========================================================================
 // PROJECTS
@@ -67,7 +105,7 @@ server.tool(
   'get_project',
   'Get details of a specific project.',
   { projectId: z.string().describe('Project ID') },
-  async ({ projectId }) => ok(await api('GET', `/API/v1.10/${projectId}`))
+  async ({ projectId }) => ok(await api('GET', `/API/v1.10/${enc(projectId)}`))
 );
 
 server.tool(
@@ -88,7 +126,7 @@ server.tool(
     name:        z.string().optional(),
     description: z.string().optional()
   },
-  async ({ projectId, ...body }) => ok(await api('PATCH', `/API/v1.10/${projectId}`, body))
+  async ({ projectId, ...body }) => ok(await api('PATCH', `/API/v1.10/${enc(projectId)}`, body))
 );
 
 // ==========================================================================
@@ -97,11 +135,19 @@ server.tool(
 
 server.tool(
   'list_subprojects',
-  'List all subprojects inside a project.',
+  'List all subprojects inside a project. Keys are the qualified {subProjectId}:{streamId} IDs.',
   {
-    projectId: z.string().optional().describe('Project ID. Use "-" to list across all projects.')
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ projectId }) => ok(await api('GET', `/API/v1.10/${projectId || '-'}/subProjects`))
+  // There is no GET /{projectId}/subProjects route (it returns 404). The account root lists every
+  // project with its subprojects nested under `subProjects`.
+  async ({ projectId }) => {
+    const id = resolveProject(projectId);
+    const account = await api('GET', '/API/v1.10/');
+    const project = account?.projects?.[id];
+    if (!project) throw new Error(`Project ${id} was not found in this account. Call list_projects to find it.`);
+    return ok(project.subProjects || {});
+  }
 );
 
 server.tool(
@@ -109,10 +155,10 @@ server.tool(
   'Get details of a specific subproject.',
   {
     subProjectId: z.string().describe('SubProject ID'),
-    projectId:    z.string().optional().describe('Project ID. Defaults to "-".')
+    projectId:    z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
   async ({ projectId, subProjectId }) =>
-    ok(await api('GET', `/API/v1.10/${projectId || '-'}/subProject/${subProjectId}`))
+    ok(await api('GET', `/API/v1.10/${enc(resolveProject(projectId))}/subProject/${enc(resolveSub(subProjectId))}`))
 );
 
 server.tool(
@@ -120,7 +166,7 @@ server.tool(
   'Create a new subproject inside a project.',
   {
     userEmail:       z.string().describe('Email of the user making the request (required with API token).'),
-    projectId:       z.string().optional().describe('Project ID. Defaults to "-".'),
+    projectId:       z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.'),
     name:            z.string().optional(),
     description:     z.string().optional(),
     locked:          z.boolean().optional().describe('If true, the subproject cannot be edited.'),
@@ -128,7 +174,7 @@ server.tool(
     folderHierarchy: z.array(z.string()).optional().describe('Path of folder names to nest the subproject in.')
   },
   async ({ projectId, ...body }) =>
-    ok(await api('POST', `/API/v1.10/${projectId || '-'}/subProject`, body))
+    ok(await api('POST', `/API/v1.10/${enc(resolveProject(projectId))}/subProject`, body))
 );
 
 server.tool(
@@ -144,7 +190,7 @@ server.tool(
     vendorAttributes:z.record(z.unknown()).optional()
   },
   async ({ projectId, subProjectId, ...body }) =>
-    ok(await api('PATCH', `/API/v1.10/${projectId || '-'}/subProject/${subProjectId}`, body))
+    ok(await api('PATCH', `/API/v1.10/${enc(resolveProject(projectId))}/subProject/${enc(resolveSub(subProjectId))}`, body))
 );
 
 server.tool(
@@ -155,35 +201,39 @@ server.tool(
     projectId:    z.string().optional()
   },
   async ({ projectId, subProjectId }) =>
-    ok(await api('DELETE', `/API/v1.10/${projectId || '-'}/subProject/${subProjectId}`))
+    ok(await api('DELETE', `/API/v1.10/${enc(resolveProject(projectId))}/subProject/${enc(resolveSub(subProjectId))}`))
 );
 
 server.tool(
   'get_subproject_hierarchy',
   'Get the full resource hierarchy (tree structure) of a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/hierarchy`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/hierarchy`))
 );
 
 server.tool(
   'get_subproject_is_ready',
   'Check whether a subproject is fully loaded and ready for API operations.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/isReady`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/isReady`))
 );
 
 server.tool(
   'get_subproject_share_url',
   'Get a shareable URL for a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/shareUrl`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/shareUrl`))
 );
 
 server.tool(
   'get_subproject_tags',
   'Get all tags currently in use within a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/tags`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/tags`))
 );
 
 // ==========================================================================
@@ -193,8 +243,9 @@ server.tool(
 server.tool(
   'get_staged_assets',
   'List all staged assets (equipment, valves, manifolds, structures, etc.) in a subproject.',
-  { subProjectId: z.string().optional().describe('SubProject ID. Falls back to FIELDTWIN_SUBPROJECT_ID env var.') },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/stagedAssets`))
+  { subProjectId: z.string().optional().describe('SubProject ID (or qualified subProjectId:streamId). Falls back to FIELDTWIN_SUBPROJECT_ID env var.'),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/stagedAssets`))
 );
 
 server.tool(
@@ -202,9 +253,10 @@ server.tool(
   'Get a single staged asset by ID.',
   {
     id:           z.string().describe('Staged asset ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/stagedAsset/${id}`))
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/stagedAsset/${enc(id)}`))
 );
 
 server.tool(
@@ -216,22 +268,19 @@ server.tool(
     y:                   z.number().describe('Y coordinate'),
     z:                   z.number().optional().default(0).describe('Z coordinate'),
     rotation:            z.number().optional().default(0).describe('Rotation in degrees'),
-    status:              z.enum(['Planned', 'Installed', 'Removed']).optional().default('Planned'),
     tags:                z.array(z.string()).optional().describe('Tags in key::value format'),
-    stagedAssetSymbolId: z.string().optional().describe('ID of the 3D symbol to use. Call get_assets to list available symbols.'),
-    vendorAttributes:    z.record(z.unknown()).optional(),
-    subProjectId:        z.string().optional()
+    asset:               z.string().optional().describe('Asset definition ID used to display the staged asset. Call get_assets to list them.'),
+    subProjectId:        z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ name, x, y, z: zCoord, rotation, status, tags, stagedAssetSymbolId, vendorAttributes, subProjectId }) => {
+  async ({ name, x, y, z: zCoord, rotation, tags, asset, subProjectId, projectId }) => {
     const body = {
       name,
       initialState: { x, y, z: zCoord ?? 0, rotation: rotation ?? 0 },
-      status,
-      ...(tags                ? { tags }                : {}),
-      ...(stagedAssetSymbolId ? { stagedAssetSymbolId } : {}),
-      ...(vendorAttributes    ? { vendorAttributes }    : {})
+      ...(tags  ? { tags }  : {}),
+      ...(asset ? { asset } : {})
     };
-    return ok(await api('POST', `${BASE(subProjectId)}/stagedAsset`, body));
+    return ok(await api('POST', `${BASE(subProjectId, projectId)}/stagedAsset`, body));
   }
 );
 
@@ -242,15 +291,14 @@ server.tool(
     assets: z.array(z.object({
       name:                z.string(),
       initialState:        z.object({ x: z.number(), y: z.number(), z: z.number().optional().default(0), rotation: z.number().optional().default(0) }),
-      status:              z.enum(['Planned', 'Installed', 'Removed']).optional(),
       tags:                z.array(z.string()).optional(),
-      stagedAssetSymbolId: z.string().optional(),
-      vendorAttributes:    z.record(z.unknown()).optional()
-    })).describe('Array of staged assets to create'),
-    subProjectId: z.string().optional()
+      asset:               z.string().optional()
+    })).describe('Array of staged assets to create. Sent as the v1.10 { items } batch envelope.'),
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ assets, subProjectId }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/stagedAssets/batch`, assets))
+  async ({ assets, subProjectId, projectId }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/stagedAssets/batch`, { items: assets }))
 );
 
 server.tool(
@@ -259,7 +307,7 @@ server.tool(
   {
     id:               z.string().describe('Staged asset ID'),
     name:             z.string().optional(),
-    status:           z.enum(['Planned', 'Installed', 'Removed']).optional(),
+    status:           STATUS.optional(),
     visible:          z.boolean().optional(),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
@@ -267,9 +315,10 @@ server.tool(
     y:                z.number().optional(),
     z:                z.number().optional(),
     rotation:         z.number().optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, x, y, z: zCoord, rotation, ...rest }) => {
+  async ({ id, subProjectId, projectId, x, y, z: zCoord, rotation, ...rest }) => {
     const body = { ...rest };
     if (x !== undefined || y !== undefined || zCoord !== undefined || rotation !== undefined) {
       body.initialState = {
@@ -279,7 +328,7 @@ server.tool(
         ...(rotation !== undefined ? { rotation }  : {})
       };
     }
-    return ok(await api('PATCH', `${BASE(subProjectId)}/stagedAsset/${id}`, body));
+    return ok(await api('PATCH', `${BASE(subProjectId, projectId)}/stagedAsset/${enc(id)}`, body));
   }
 );
 
@@ -288,9 +337,10 @@ server.tool(
   'Delete a staged asset permanently.',
   {
     id:           z.string().describe('Staged asset ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/stagedAsset/${id}`))
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/stagedAsset/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -300,15 +350,17 @@ server.tool(
 server.tool(
   'get_wells',
   'List all wells in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/wells`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/wells`))
 );
 
 server.tool(
   'get_well',
   'Get a single well by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/well/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/well/${enc(id)}`))
 );
 
 server.tool(
@@ -323,10 +375,11 @@ server.tool(
     kind:             z.string().optional().describe('Well type ID. Call get_well_types to see available types.'),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/well`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/well`, body))
 );
 
 server.tool(
@@ -342,10 +395,11 @@ server.tool(
       kind:   z.string().optional(),
       tags:   z.array(z.string()).optional()
     })).describe('Array of wells to create'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wells, subProjectId }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/wells/batch`, wells))
+  async ({ wells, subProjectId, projectId }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/wells/batch`, { items: wells }))
 );
 
 server.tool(
@@ -360,17 +414,19 @@ server.tool(
     color:            z.string().optional(),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/well/${id}`, body))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/well/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_well',
   'Delete a well.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/well/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/well/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -396,10 +452,11 @@ server.tool(
     targets:           z.array(z.unknown()).optional().describe('Array of target formation objects'),
     casingShoes:       z.array(z.unknown()).optional().describe('Array of casing shoe objects'),
     visualisationMaps: z.array(z.unknown()).optional(),
-    subProjectId:      z.string().optional()
+    subProjectId:      z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellId, subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/well/${wellId}/wellBore/`, body))
+  async ({ wellId, subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/well/${enc(wellId)}/wellBore/`, body))
 );
 
 server.tool(
@@ -418,10 +475,11 @@ server.tool(
     targets:           z.array(z.unknown()).optional(),
     casingShoes:       z.array(z.unknown()).optional(),
     parentBore:        z.string().optional().describe('Parent well bore ID for directional wells'),
-    subProjectId:      z.string().optional()
+    subProjectId:      z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellBoreId, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/wellBore/${wellBoreId}`, body))
+  async ({ wellBoreId, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/wellBore/${enc(wellBoreId)}`, body))
 );
 
 server.tool(
@@ -429,10 +487,11 @@ server.tool(
   'Delete a well bore.',
   {
     wellBoreId:   z.string().describe('Well bore ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellBoreId, subProjectId }) =>
-    ok(await api('DELETE', `${BASE(subProjectId)}/wellBore/${wellBoreId}`))
+  async ({ wellBoreId, subProjectId, projectId }) =>
+    ok(await api('DELETE', `${BASE(subProjectId, projectId)}/wellBore/${enc(wellBoreId)}`))
 );
 
 server.tool(
@@ -440,10 +499,11 @@ server.tool(
   'List all segments of a well bore.',
   {
     wellBoreId:   z.string().describe('Well bore ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellBoreId, subProjectId }) =>
-    ok(await api('GET', `${BASE(subProjectId)}/wellBore/${wellBoreId}/wellBoreSegments/`))
+  async ({ wellBoreId, subProjectId, projectId }) =>
+    ok(await api('GET', `${BASE(subProjectId, projectId)}/wellBore/${enc(wellBoreId)}/wellBoreSegments/`))
 );
 
 server.tool(
@@ -463,10 +523,11 @@ server.tool(
     opacity:             z.number().optional(),
     tags:                z.array(z.string()).optional(),
     vendorAttributes:    z.record(z.unknown()).optional(),
-    subProjectId:        z.string().optional()
+    subProjectId:        z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellBoreId, wellBoreSegmentId, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/wellBore/${wellBoreId}/wellBoreSegments/${wellBoreSegmentId}`, body))
+  async ({ wellBoreId, wellBoreSegmentId, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/wellBore/${enc(wellBoreId)}/wellBoreSegments/${enc(wellBoreSegmentId)}`, body))
 );
 
 server.tool(
@@ -474,10 +535,11 @@ server.tool(
   'Delete a well bore segment.',
   {
     wellBoreSegmentId: z.string().describe('Well bore segment ID'),
-    subProjectId:      z.string().optional()
+    subProjectId:      z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellBoreSegmentId, subProjectId }) =>
-    ok(await api('DELETE', `${BASE(subProjectId)}/wellBoreSegment/${wellBoreSegmentId}`))
+  async ({ wellBoreSegmentId, subProjectId, projectId }) =>
+    ok(await api('DELETE', `${BASE(subProjectId, projectId)}/wellBoreSegment/${enc(wellBoreSegmentId)}`))
 );
 
 server.tool(
@@ -485,10 +547,11 @@ server.tool(
   'List all well bores (trajectories) for a specific well.',
   {
     wellId:       z.string().describe('Well ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellId, subProjectId }) =>
-    ok(await api('GET', `${BASE(subProjectId)}/well/${wellId}/wellBores`))
+  async ({ wellId, subProjectId, projectId }) =>
+    ok(await api('GET', `${BASE(subProjectId, projectId)}/well/${enc(wellId)}/wellBores`))
 );
 
 server.tool(
@@ -496,10 +559,11 @@ server.tool(
   'Get a single well bore by ID.',
   {
     wellBoreId:   z.string().describe('Well bore ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ wellBoreId, subProjectId }) =>
-    ok(await api('GET', `${BASE(subProjectId)}/wellBore/${wellBoreId}`))
+  async ({ wellBoreId, subProjectId, projectId }) =>
+    ok(await api('GET', `${BASE(subProjectId, projectId)}/wellBore/${enc(wellBoreId)}`))
 );
 
 // ==========================================================================
@@ -509,15 +573,17 @@ server.tool(
 server.tool(
   'get_connections',
   'List all connections (pipelines, cables, umbilicals) in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/connections`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/connections`))
 );
 
 server.tool(
   'get_connection',
   'Get a single connection by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/connection/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/connection/${enc(id)}`))
 );
 
 server.tool(
@@ -531,23 +597,24 @@ server.tool(
     toX:              z.number().describe('End X coordinate'),
     toY:              z.number().describe('End Y coordinate'),
     toZ:              z.number().optional().default(0),
-    status:           z.enum(['Planned', 'Installed', 'Removed']).optional().default('Planned'),
+    status:           STATUS.optional(),
     width:            z.number().optional().describe('Connection width'),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ name, fromX, fromY, fromZ, toX, toY, toZ, status, width, tags, vendorAttributes, subProjectId }) => {
+  async ({ name, fromX, fromY, fromZ, toX, toY, toZ, status, width, tags, vendorAttributes, subProjectId, projectId }) => {
     const body = {
       name,
       fromCoordinate: { x: fromX, y: fromY, z: fromZ ?? 0 },
       toCoordinate:   { x: toX,   y: toY,   z: toZ   ?? 0 },
-      status,
+      ...(status !== undefined ? { status } : {}),
       ...(width            ? { params: { width } } : {}),
       ...(tags             ? { tags }               : {}),
       ...(vendorAttributes ? { vendorAttributes }   : {})
     };
-    return ok(await api('POST', `${BASE(subProjectId)}/connection`, body));
+    return ok(await api('POST', `${BASE(subProjectId, projectId)}/connection`, body));
   }
 );
 
@@ -559,14 +626,15 @@ server.tool(
       name:           z.string(),
       fromCoordinate: z.object({ x: z.number(), y: z.number(), z: z.number().optional().default(0) }),
       toCoordinate:   z.object({ x: z.number(), y: z.number(), z: z.number().optional().default(0) }),
-      status:         z.enum(['Planned', 'Installed', 'Removed']).optional(),
+      status:         STATUS.optional(),
       tags:           z.array(z.string()).optional(),
       vendorAttributes: z.record(z.unknown()).optional()
     })).describe('Array of connection objects to create'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ connections, subProjectId }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/connections/batch`, connections))
+  async ({ connections, subProjectId, projectId }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/connections/batch`, { items: connections }))
 );
 
 server.tool(
@@ -575,20 +643,22 @@ server.tool(
   {
     id:               z.string(),
     name:             z.string().optional(),
-    status:           z.enum(['Planned', 'Installed', 'Removed']).optional(),
+    status:           STATUS.optional(),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/connection/${id}`, body))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/connection/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_connection',
   'Delete a connection.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/connection/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/connection/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -600,10 +670,11 @@ server.tool(
   'List all segments of a connection.',
   {
     connectionId: z.string().describe('Connection ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ connectionId, subProjectId }) =>
-    ok(await api('GET', `${BASE(subProjectId)}/connections/${connectionId}/connectionSegments/`))
+  async ({ connectionId, subProjectId, projectId }) =>
+    ok(await api('GET', `${BASE(subProjectId, projectId)}/connections/${enc(connectionId)}/connectionSegments/`))
 );
 
 server.tool(
@@ -622,10 +693,11 @@ server.tool(
     opacity:          z.number().optional(),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ connectionId, subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/connection/${connectionId}/connectionSegment`, body))
+  async ({ connectionId, subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/connection/${enc(connectionId)}/connectionSegment`, body))
 );
 
 server.tool(
@@ -645,10 +717,11 @@ server.tool(
     opacity:          z.number().optional(),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ connectionId, connectionSegmentId, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/connection/${connectionId}/connectionSegment/${connectionSegmentId}`, body))
+  async ({ connectionId, connectionSegmentId, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/connection/${enc(connectionId)}/connectionSegment/${enc(connectionSegmentId)}`, body))
 );
 
 server.tool(
@@ -656,10 +729,11 @@ server.tool(
   'Delete a connection segment.',
   {
     connectionSegmentId: z.string().describe('Segment ID'),
-    subProjectId:        z.string().optional()
+    subProjectId:        z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ connectionSegmentId, subProjectId }) =>
-    ok(await api('DELETE', `${BASE(subProjectId)}/connectionSegments/${connectionSegmentId}`))
+  async ({ connectionSegmentId, subProjectId, projectId }) =>
+    ok(await api('DELETE', `${BASE(subProjectId, projectId)}/connectionSegments/${enc(connectionSegmentId)}`))
 );
 
 // ==========================================================================
@@ -669,15 +743,17 @@ server.tool(
 server.tool(
   'get_shapes',
   'List all shapes (zones, areas, polygons, spheres, boxes, etc.) in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/shapes`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/shapes`))
 );
 
 server.tool(
   'get_shape',
   'Get a single shape by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/shape/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/shape/${enc(id)}`))
 );
 
 server.tool(
@@ -704,10 +780,11 @@ server.tool(
     cylinderRadiusBottom: z.number().optional(),
     cylinderHeight:       z.number().optional(),
     polyOuterRing: z.array(z.number()).optional().describe('Flat [x1,y1,x2,y2,...] array for Polygon outer ring'),
-    subProjectId:  z.string().optional()
+    subProjectId:  z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/shape`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/shape`, body))
 );
 
 server.tool(
@@ -724,10 +801,11 @@ server.tool(
       opacity:   z.number().optional(),
       tags:      z.array(z.string()).optional()
     })).describe('Array of shapes to create'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ shapes, subProjectId }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/shapes/batch`, shapes))
+  async ({ shapes, subProjectId, projectId }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/shapes/batch`, { items: shapes }))
 );
 
 server.tool(
@@ -746,17 +824,19 @@ server.tool(
     description: z.string().optional(),
     tags:        z.array(z.string()).optional(),
     kind:        z.string().optional(),
-    subProjectId:z.string().optional()
+    subProjectId:z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/shape/${id}`, body))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/shape/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_shape',
   'Delete a shape.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/shape/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/shape/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -767,15 +847,17 @@ server.tool(
 server.tool(
   'get_overlays',
   'List all overlays (2D labels rendered in the 3D scene) in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/overlays`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/overlays`))
 );
 
 server.tool(
   'get_overlay',
   'Get a single overlay by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/overlay/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/overlay/${enc(id)}`))
 );
 
 server.tool(
@@ -792,10 +874,11 @@ server.tool(
     visible:          z.boolean().optional().default(true),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/overlay`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/overlay`, body))
 );
 
 server.tool(
@@ -811,10 +894,11 @@ server.tool(
       visible: z.boolean().optional(),
       tags:    z.array(z.string()).optional()
     })).describe('Array of overlays to create'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ overlays, subProjectId }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/overlays/batch`, overlays))
+  async ({ overlays, subProjectId, projectId }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/overlays/batch`, { items: overlays }))
 );
 
 server.tool(
@@ -832,72 +916,11 @@ server.tool(
     visible:          z.boolean().optional(),
     tags:             z.array(z.string()).optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/overlay/${id}`, body))
-);
-
-// ==========================================================================
-// FRAMES
-// ==========================================================================
-
-server.tool(
-  'get_frames',
-  'List all frames in a subproject. Frames are 2D/3D bounding boxes used to define spatial zones or reference areas.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/frames`))
-);
-
-server.tool(
-  'get_frame',
-  'Get a single frame by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/frame/${id}`))
-);
-
-server.tool(
-  'create_frame',
-  'Create a new frame in a subproject.',
-  {
-    name:             z.string().describe('Frame name'),
-    x:                z.number().describe('X coordinate of the frame origin'),
-    y:                z.number().describe('Y coordinate of the frame origin'),
-    z:                z.number().optional().default(0).describe('Z coordinate of the frame origin'),
-    rotation:         z.number().optional().default(0).describe('Rotation in degrees'),
-    visible:          z.boolean().optional().default(true),
-    tags:             z.array(z.string()).optional().describe('Tags in key::value format'),
-    vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
-  },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/frame`, body))
-);
-
-server.tool(
-  'update_frame',
-  'Update an existing frame.',
-  {
-    id:               z.string().describe('Frame ID'),
-    name:             z.string().optional(),
-    x:                z.number().optional(),
-    y:                z.number().optional(),
-    z:                z.number().optional(),
-    rotation:         z.number().optional(),
-    visible:          z.boolean().optional(),
-    tags:             z.array(z.string()).optional(),
-    vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
-  },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/frame/${id}`, body))
-);
-
-server.tool(
-  'delete_frame',
-  'Delete a frame.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/frame/${id}`))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/overlay/${enc(id)}`, body))
 );
 
 // ==========================================================================
@@ -907,15 +930,17 @@ server.tool(
 server.tool(
   'get_annotations',
   'List all annotations in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/annotations`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/annotations`))
 );
 
 server.tool(
   'get_annotation',
   'Get a single annotation by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/annotations/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/annotations/${enc(id)}`))
 );
 
 server.tool(
@@ -936,10 +961,11 @@ server.tool(
       type: z.string().describe('stagedAsset | well | connection | shape | overlay')
     })).optional().describe('Resources to attach this annotation to'),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/annotations`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/annotations`, body))
 );
 
 server.tool(
@@ -957,17 +983,19 @@ server.tool(
     visible:          z.boolean().optional(),
     kind:             z.string().optional(),
     vendorAttributes: z.record(z.unknown()).optional(),
-    subProjectId:     z.string().optional()
+    subProjectId:     z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/annotations/${id}`, body))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/annotations/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_annotation',
   'Delete an annotation.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/annotations/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/annotations/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -977,15 +1005,17 @@ server.tool(
 server.tool(
   'get_layers',
   'List all layers (bathymetry, WMS, image layers, etc.) in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/layers`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/layers`))
 );
 
 server.tool(
   'get_layer',
   'Get a single layer by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/layer/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/layer/${enc(id)}`))
 );
 
 server.tool(
@@ -1006,10 +1036,11 @@ server.tool(
     isWMS:        z.boolean().optional().describe('Set to true if this is a WMS layer'),
     isBathymetry: z.boolean().optional().describe('Set to true if this is a bathymetry layer'),
     tags:         z.array(z.string()).optional(),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/layer`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/layer`, body))
 );
 
 server.tool(
@@ -1029,17 +1060,19 @@ server.tool(
     opacity:     z.number().optional(),
     description: z.string().optional(),
     tags:        z.array(z.string()).optional(),
-    subProjectId:z.string().optional()
+    subProjectId:z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/layer/${id}`, body))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/layer/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_layer',
   'Delete a layer.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/layer/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/layer/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -1049,15 +1082,17 @@ server.tool(
 server.tool(
   'get_custom_costs',
   'List all custom cost entries in a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/customCost/`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/customCost/`))
 );
 
 server.tool(
   'get_custom_cost',
   'Get a single custom cost entry by ID.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/customCost/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/customCost/${enc(id)}`))
 );
 
 server.tool(
@@ -1082,10 +1117,11 @@ server.tool(
       description:       z.string()
     }),
     tags:         z.array(z.string()).optional(),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/customCost/`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/customCost/`, body))
 );
 
 server.tool(
@@ -1093,10 +1129,11 @@ server.tool(
   'Create multiple custom cost entries in one request.',
   {
     costs:        z.array(z.record(z.unknown())).describe('Array of cost entry objects'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ costs, subProjectId }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/customCosts/batch`, costs))
+  async ({ costs, subProjectId, projectId }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/customCosts/batch`, { items: costs }))
 );
 
 server.tool(
@@ -1110,17 +1147,19 @@ server.tool(
     isValidForCost: z.boolean().optional(),
     costObject:     z.record(z.unknown()).optional(),
     tags:           z.array(z.string()).optional(),
-    subProjectId:   z.string().optional()
+    subProjectId:   z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ id, subProjectId, ...body }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/customCost/${id}`, body))
+  async ({ id, subProjectId, projectId, ...body }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/customCost/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_custom_cost',
   'Delete a custom cost entry.',
-  { id: z.string(), subProjectId: z.string().optional() },
-  async ({ id, subProjectId }) => ok(await api('DELETE', `${BASE(subProjectId)}/customCost/${id}`))
+  { id: z.string(), subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ id, subProjectId, projectId }) => ok(await api('DELETE', `${BASE(subProjectId, projectId)}/customCost/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -1130,8 +1169,9 @@ server.tool(
 server.tool(
   'get_subproject_documents',
   'List all documents attached to a subproject.',
-  { subProjectId: z.string().optional() },
-  async ({ subProjectId }) => ok(await api('GET', `${BASE(subProjectId)}/documents`))
+  { subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.') },
+  async ({ subProjectId, projectId }) => ok(await api('GET', `${BASE(subProjectId, projectId)}/documents`))
 );
 
 server.tool(
@@ -1140,10 +1180,11 @@ server.tool(
   {
     url:          z.string().describe('URL of the document to upload'),
     name:         z.string().optional().describe('Display name for the document'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ subProjectId, ...body }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/documents`, body))
+  async ({ subProjectId, projectId, ...body }) =>
+    ok(await api('POST', `${BASE(subProjectId, projectId)}/documents`, body))
 );
 
 server.tool(
@@ -1151,80 +1192,42 @@ server.tool(
   'Delete a document from a subproject.',
   {
     documentId:   z.string().describe('Document ID'),
-    subProjectId: z.string().optional()
+    subProjectId: z.string().optional(),
+    projectId: z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ documentId, subProjectId }) =>
-    ok(await api('DELETE', `${BASE(subProjectId)}/documents/${documentId}`))
+  async ({ documentId, subProjectId, projectId }) =>
+    ok(await api('DELETE', `${BASE(subProjectId, projectId)}/documents/${enc(documentId)}`))
 );
 
 // ==========================================================================
 // METADATA
+// v1.10 has no per-resource /metaData sub-route. Metadata values are returned inside each
+// resource GET under `metaData`, and written by PATCHing the resource with a `metaData` array.
+// Definitions are account-level.
 // ==========================================================================
 
 server.tool(
-  'get_metadata_definitions',
-  'List all metadata field definitions (shows what custom fields exist and their types). Use "-" as projectId to get account-wide definitions.',
-  {
-    projectId: z.string().optional().describe('Project ID. Defaults to "-" (account-level).')
-  },
-  async ({ projectId }) =>
-    ok(await api('GET', `/API/v1.10/project/${projectId || '-'}/metaDataDefinitions`))
-);
-
-server.tool(
   'get_account_metadata_definitions',
-  'List all account-level metadata definitions.',
+  'List all account-level metadata definitions (the custom fields that exist and their types).',
   {},
   async () => ok(await api('GET', '/API/v1.10/metadatadefinitions'))
 );
 
 server.tool(
-  'get_metadata',
-  'Get all custom metadata values attached to a specific resource.',
+  'set_resource_metadata',
+  'Write metadata values on one resource by PATCHing it with a metaData array. ' +
+  'Each entry identifies its definition with definitionId, metaDatumId, or metaDataLinkId plus a value. ' +
+  'Read current values with the resource GET tool (they are in its metaData field).',
   {
-    resourceId:   z.string().describe('ID of the resource (stagedAsset, well, connection, etc.)'),
-    subProjectId: z.string().optional()
+    resourceRoute: z.enum(['stagedAsset', 'well', 'connection', 'shape', 'layer'])
+      .describe('Singular v1.10 item route of the resource'),
+    id:           z.string().describe('Resource ID'),
+    metaData:     z.array(z.record(z.unknown())).describe('Metadata entries, e.g. [{ definitionId, value }]'),
+    subProjectId: z.string().optional(),
+    projectId:    z.string().optional().describe('Project ID. Defaults to FIELDTWIN_PROJECT_ID env var.')
   },
-  async ({ resourceId, subProjectId }) =>
-    ok(await api('GET', `${BASE(subProjectId)}/${resourceId}/metaData`))
-);
-
-server.tool(
-  'add_metadata',
-  'Add a metadata value to a resource.',
-  {
-    resourceId:           z.string().describe('ID of the resource'),
-    metaDataDefinitionId: z.string().describe('ID of the metadata field definition'),
-    value:                z.unknown().describe('The value to store'),
-    subProjectId:         z.string().optional()
-  },
-  async ({ resourceId, subProjectId, metaDataDefinitionId, value }) =>
-    ok(await api('POST', `${BASE(subProjectId)}/${resourceId}/metaData`, { metaDataDefinitionId, value }))
-);
-
-server.tool(
-  'update_metadata',
-  'Update an existing metadata value on a resource.',
-  {
-    resourceId:   z.string().describe('ID of the resource'),
-    metaDataId:   z.string().describe('ID of the specific metadata entry to update'),
-    value:        z.unknown().describe('New value to store'),
-    subProjectId: z.string().optional()
-  },
-  async ({ resourceId, metaDataId, value, subProjectId }) =>
-    ok(await api('PATCH', `${BASE(subProjectId)}/${resourceId}/metaData/${metaDataId}`, { value }))
-);
-
-server.tool(
-  'delete_metadata',
-  'Delete a metadata value from a resource.',
-  {
-    resourceId:   z.string().describe('ID of the resource'),
-    metaDataId:   z.string().describe('ID of the specific metadata entry to delete'),
-    subProjectId: z.string().optional()
-  },
-  async ({ resourceId, metaDataId, subProjectId }) =>
-    ok(await api('DELETE', `${BASE(subProjectId)}/${resourceId}/metaData/${metaDataId}`))
+  async ({ resourceRoute, id, metaData, subProjectId, projectId }) =>
+    ok(await api('PATCH', `${BASE(subProjectId, projectId)}/${resourceRoute}/${enc(id)}`, { metaData }))
 );
 
 // ==========================================================================
@@ -1234,7 +1237,7 @@ server.tool(
 
 server.tool(
   'get_assets',
-  'List all virtual asset definitions (3D symbols/models) available in the account. The returned IDs can be used as stagedAssetSymbolId when creating staged assets.',
+  'List all virtual asset definitions (3D symbols/models) available in the account. The returned IDs are the `asset` field when creating staged assets.',
   {},
   async () => ok(await api('GET', '/API/v1.10/assets'))
 );
@@ -1285,7 +1288,7 @@ server.tool(
   'get_connection_type',
   'Get details of a specific connection type.',
   { id: z.string().describe('Connection type ID') },
-  async ({ id }) => ok(await api('GET', `/API/v1.10/connectionTypes/${id}`))
+  async ({ id }) => ok(await api('GET', `/API/v1.10/connectionTypes/${enc(id)}`))
 );
 
 server.tool(
@@ -1324,7 +1327,7 @@ server.tool(
   'get_tag',
   'Get details of a specific tag.',
   { id: z.string() },
-  async ({ id }) => ok(await api('GET', `/API/v1.10/tags/${id}`))
+  async ({ id }) => ok(await api('GET', `/API/v1.10/tags/${enc(id)}`))
 );
 
 server.tool(
@@ -1348,14 +1351,14 @@ server.tool(
     color:  z.string().optional(),
     parent: z.string().optional()
   },
-  async ({ id, ...body }) => ok(await api('PATCH', `/API/v1.10/tags/${id}`, body))
+  async ({ id, ...body }) => ok(await api('PATCH', `/API/v1.10/tags/${enc(id)}`, body))
 );
 
 server.tool(
   'delete_tag',
   'Delete a tag.',
   { id: z.string() },
-  async ({ id }) => ok(await api('DELETE', `/API/v1.10/tags/${id}`))
+  async ({ id }) => ok(await api('DELETE', `/API/v1.10/tags/${enc(id)}`))
 );
 
 // ==========================================================================
@@ -1373,14 +1376,14 @@ server.tool(
   'get_user',
   'Get details of a specific user.',
   { userId: z.string().describe('User ID') },
-  async ({ userId }) => ok(await api('GET', `/API/v1.10/user/${userId}`))
+  async ({ userId }) => ok(await api('GET', `/API/v1.10/user/${enc(userId)}`))
 );
 
 server.tool(
   'get_usage',
   'Get account usage statistics.',
-  {},
-  async () => ok(await api('GET', '/API/v1.10/usage'))
+  { date: z.number().describe('Date from which to get usage, as Unix epoch time in seconds.') },
+  async ({ date }) => ok(await api('GET', `/API/v1.10/usage?date=${date}`))
 );
 
 server.tool(
