@@ -74,6 +74,7 @@ FORBIDDEN_PLATFORM_PATHS = {
 SCANNED_SUFFIXES = {
     "",
     ".cjs",
+    ".html",
     ".js",
     ".json",
     ".md",
@@ -84,6 +85,9 @@ SCANNED_SUFFIXES = {
     ".yaml",
     ".yml",
 }
+# Local, untracked state that is never published: Git metadata, installed dependencies, and
+# per-user agent settings.
+LOCAL_ONLY_PARTS = {".git", "node_modules", ".claude"}
 MARKDOWN_LINK_PATTERN = re.compile(
     r"!?\[[^\]]*\]\(\s*(?:<([^>]+)>|([^\s)]+))(?:\s+['\"][^)]*['\"])?\s*\)"
 )
@@ -489,7 +493,7 @@ def iter_public_text_files() -> list[Path]:
 
     files: list[Path] = []
     for path in REPOSITORY_ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts:
+        if not path.is_file() or LOCAL_ONLY_PARTS.intersection(path.parts):
             continue
         if path.suffix.lower() in SCANNED_SUFFIXES and path.stat().st_size <= 5_000_000:
             files.append(path)
